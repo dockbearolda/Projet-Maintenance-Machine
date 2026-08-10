@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16181c">
+<title>Maintenance Atelier — Trotec &amp; Sublistar DTF</title>
+<meta name="description" content="Suivi de maintenance atelier impression &amp; découpe : pointage hebdo Trotec, consommables DTF, historique, journal des pannes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2316181c'/%3E%3Cpath d='M6 22h20M6 16h20M6 10h20' stroke='%23e2591b' stroke-width='3'/%3E%3C/svg%3E">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu</a>
+
+<aside class="rail" id="rail" aria-label="Navigation des machines">
+  <div class="rail__brand">
+    <div class="hazard" aria-hidden="true"></div>
+    <div class="rail__brandbody">
+      <span class="rail__kicker">Atelier impression &amp; découpe</span>
+      <h1 class="rail__title">Plan de<br>maintenance</h1>
+    </div>
+  </div>
+  <nav class="rail__nav" id="nav"></nav>
+  <div class="rail__foot">
+    <button type="button" class="btn btn--ghost btn--block" id="btnBackup">Sauvegarde .json</button>
+    <button type="button" class="btn btn--ghost btn--block" id="btnRestore">Restaurer</button>
+    <input type="file" id="fileRestore" accept="application/json" hidden>
+    <p class="rail__note" id="storageNote">—</p>
+  </div>
+</aside>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<main class="main" id="main">
+  <header class="topbar">
+    <button type="button" class="burger" id="burger" aria-label="Ouvrir la navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar__id">
+      <span class="topbar__machine" id="crumbMachine">—</span>
+      <span class="topbar__view" id="crumbView">—</span>
+    </div>
+    <div class="topbar__tools" id="tools"></div>
+    <div class="saver" id="saver" aria-live="polite"><i></i><span>Enregistré</span></div>
+  </header>
+  <div class="view" id="view"></div>
+</main>
+
+<div class="modal" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="assets/js/schema.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -58,7 +58,7 @@ function alerts() {
 function renderNav() {
   const a = alerts();
   paint(el.nav, NAV.map((g) => `
-    ${g.label ? `<div class="navgroup"><div class="navgroup__label">${esc(g.label)}</div></div>` : '<div class="navgroup"></div>'}
+    ${g.label ? `<div class="navgroup"><div class="navgroup__label">${esc(g.label)}</div></div>` : ''}
     ${g.items.map((it) => `
       <button type="button" class="navlink" data-go="${esc(it.id)}" aria-current="${current === it.id}">
         <span>${esc(it.label)}</span>

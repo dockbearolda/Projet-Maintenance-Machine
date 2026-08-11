@@ -121,14 +121,6 @@ button{ font: inherit; color: inherit; }
 .navlink[aria-current="true"]{
   background: var(--rail-2); color:#fff; border-left-color: var(--signal); font-weight:500;
 }
-.navlink__badge{
-  margin-left:auto; font-family: var(--f-mono); font-size: 11px; font-weight:600;
-  min-width: 21px; height: 19px; padding: 0 6px; border-radius: 10px;
-  display:inline-flex; align-items:center; justify-content:center;
-  background: var(--bad); color:#fff;
-}
-.navlink__badge[data-tone="warn"]{ background: #b8760a; }
-
 .rail__foot{
   flex:0 0 auto; padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--rail-3); display:grid; gap:6px;
@@ -177,15 +169,16 @@ button{ font: inherit; color: inherit; }
 .saver i{ width:7px; height:7px; border-radius:50%; background: var(--ok); }
 .saver[data-state="dirty"] i{ background: #c98a00; }
 
+/* Le tableau occupe toute la hauteur restante : en-têtes figés en haut, seul
+   le corps du tableau défile. */
 .view{
-  flex:1 1 auto; min-height:0; overflow:auto;
+  flex:1 1 auto; min-height:0; overflow:hidden; display:flex;
   padding: 20px; padding-right: max(20px, env(safe-area-inset-right));
   padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
-.view--table{ overflow:hidden; display:flex; }
-.view--table > .panel{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
-.view--table .panel__head, .view--table .panel__foot{ flex:0 0 auto; }
-.view--table .tablewrap{ flex:1 1 auto; min-height:0; max-height:none; }
+.view > .panel{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+.view .panel__head, .view .panel__foot{ flex:0 0 auto; }
+.view .tablewrap{ flex:1 1 auto; min-height:0; }
 
 /* ============================== CONTROLS ================================ */
 
@@ -224,14 +217,6 @@ button{ font: inherit; color: inherit; }
   box-shadow: 4px 4px 0 -3.2px var(--ink-3);
 }
 .search input:focus{ outline:2px solid var(--signal); outline-offset:0; border-color: var(--signal); }
-
-.toggle{
-  display:inline-flex; align-items:center; gap:7px; min-height:38px; padding:0 12px;
-  border:1px solid var(--line-2); border-radius: var(--r); background: var(--card);
-  font-size:13.5px; cursor:pointer; user-select:none; white-space:nowrap;
-}
-.toggle input{ accent-color: var(--signal); width:15px; height:15px; margin:0; }
-.toggle:has(input:checked){ border-color: var(--signal); background:#fdf1ea; }
 
 /* ============================== PANEL / TABLE =========================== */
 
@@ -279,38 +264,23 @@ table.grid{
   border-bottom:1px solid var(--line-2);
   white-space: normal;
 }
-.grid thead tr.groups th{ top:0; }
 .grid thead tr.heads th{ top:0; }
-.grid.has-groups thead tr.heads th{ top: 28px; }
-.grid thead tr.groups th{
-  font-size: 10px; letter-spacing:.14em; color:#fff; background: var(--ink-2);
-  padding: 5px 9px; text-align:left; border-right:1px solid #4a5058;
-  height: 28px;
-}
-.grid thead tr.groups th.g-empty{ background:#5b6169; }
-
-/* Bandeau de groupe au-dessus des colonnes gelées : il ne défile pas. */
-.grid thead tr.groups th.g-lead{ position: sticky; left:0; z-index:6; overflow: visible; padding:0; }
-.grid thead tr.groups th.g-lead span{
-  position:absolute; top:0; left:0; height:100%; width: var(--frozen, 44px);
-  display:flex; align-items:center; padding: 0 9px;
-  background: var(--ink-2); border-right:1px solid #4a5058;
-}
 
 .grid tbody tr:nth-child(even) td{ background:#faf8f3; }
 .grid tbody tr:nth-child(odd) td{ background: var(--card); }
 .grid tbody tr:hover td{ background:#f2eee4; }
 .grid tbody tr:focus-within td{ background:#fdf3ec; }
-.grid tbody tr.is-flag td{ box-shadow: inset 0 0 0 999px rgba(171,33,29,.045); }
 
 /* colonnes gelées */
 .grid .stick{ position: sticky; z-index: 2; }
 .grid thead .stick{ z-index: 4; }
 .grid .stick--last{ border-right:1px solid var(--line-2); box-shadow: 6px 0 8px -8px rgba(0,0,0,.45); }
 
-/* cellules éditables */
+/* Cellules éditables. 44px de haut : c'est la cible tactile de l'atelier, on
+   la vise au doigt avec des gants. Les tableaux sont courts, la densité n'est
+   plus un enjeu. */
 .cell{
-  display:block; width:100%; height: 34px;
+  display:block; width:100%; height: 44px;
   padding: 0 8px; border:0; background: transparent;
   font: inherit; font-size: 14px; color: var(--ink);
   border-radius:0;
@@ -318,7 +288,6 @@ table.grid{
 .cell:focus{ outline: 2px solid var(--signal); outline-offset:-2px; background:#fff; }
 .cell::placeholder{ color:#b3aea3; }
 .cell--num{ text-align:right; font-family: var(--f-mono); font-size:13.5px; }
-.cell--mono{ font-family: var(--f-mono); font-size:13px; }
 .cell--date{ font-family: var(--f-mono); font-size:13px; }
 /* Un champ date vide affiche « jj/mm/aaaa » : on l'estompe pour ne pas
    saturer visuellement une colonne de 40 lignes non renseignées. */
@@ -332,34 +301,8 @@ select.cell{ appearance:none; cursor:pointer;
   background-position: right 12px center, right 7px center;
   background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 22px; }
 
-td.ro{ padding: 0 9px; color: var(--ink-2); font-size:13.5px; }
-td.ro.num{ text-align:right; font-family: var(--f-mono); }
-
-/* état tri-state OK / NOK / N-A */
-.tri{
-  width:100%; height:34px; border:0; background:transparent; cursor:pointer;
-  font-family: var(--f-mono); font-size: 12px; font-weight:600; letter-spacing:.04em;
-  color:#b3aea3;
-}
-.tri:hover{ background:#efeadf; }
-.tri[data-v="OK"]{ background: var(--ok-bg); color: var(--ok); }
-.tri[data-v="NOK"]{ background: var(--bad-bg); color: var(--bad); }
-.tri[data-v="N-A"]{ background: var(--mute-bg); color: var(--ink-3); }
-.tri:focus-visible{ outline:2px solid var(--signal); outline-offset:-2px; }
-
-/* badges de statut */
-.tag{
-  display:inline-block; margin: 0 8px;
-  font-family: var(--f-mono); font-size: 11px; font-weight:600; letter-spacing:.05em;
-  padding: 3px 7px; border-radius:2px; white-space:nowrap;
-}
-.tag[data-t="ok"]{ background: var(--ok-bg); color: var(--ok); }
-.tag[data-t="warn"]{ background: var(--warn-bg); color: var(--warn); }
-.tag[data-t="bad"]{ background: var(--bad-bg); color: var(--bad); }
-.tag[data-t="mute"]{ background: var(--mute-bg); color: var(--ink-3); }
-
 .rowbtn{
-  width:32px; height:34px; border:0; background:transparent; cursor:pointer;
+  width:100%; height:44px; border:0; background:transparent; cursor:pointer;
   color:#a49e91; font-size:14px; line-height:1;
 }
 .rowbtn:hover{ background:#e9e4d8; color: var(--ink); }
@@ -367,49 +310,6 @@ td.ro.num{ text-align:right; font-family: var(--f-mono); }
 
 .empty{ padding: 46px 20px; text-align:center; color: var(--ink-3); }
 .empty strong{ display:block; font-family: var(--f-cond); font-size:17px; text-transform:uppercase; color: var(--ink-2); margin-bottom:6px; }
-
-/* ============================== DASHBOARD =============================== */
-
-.dash{ display:grid; gap: 16px; max-width: 1360px; }
-.kpis{ display:grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); }
-.kpi{
-  background: var(--card); border:1px solid var(--line-2); border-radius: var(--r);
-  padding: 14px 15px; box-shadow: var(--sh); position:relative; overflow:hidden;
-}
-.kpi::after{ content:""; position:absolute; inset:0 auto 0 0; width:3px; background: var(--line-2); }
-.kpi[data-t="bad"]::after{ background: var(--bad); }
-.kpi[data-t="warn"]::after{ background: #c98a00; }
-.kpi[data-t="ok"]::after{ background: var(--ok); }
-.kpi__k{ font-family: var(--f-mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color: var(--ink-3); }
-.kpi__v{ font-family: var(--f-cond); font-weight:700; font-size: 34px; line-height:1.05; margin-top:4px; letter-spacing:-.01em; }
-.kpi__s{ font-size: 12.5px; color: var(--ink-3); margin-top:2px; }
-
-.cols2{ display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); align-items:start; }
-
-.list{ list-style:none; margin:0; padding:0; }
-.list li{
-  display:flex; align-items:center; gap:10px; padding: 9px 15px; border-bottom:1px solid var(--line);
-  font-size: 14px;
-}
-.list li:last-child{ border-bottom:0; }
-.list li b{ font-weight:500; }
-.list li .sp{ margin-left:auto; font-family: var(--f-mono); font-size:12px; color: var(--ink-3); white-space:nowrap; }
-.list li .dot{ width:7px; height:7px; border-radius:50%; flex:0 0 auto; background: var(--ink-3); }
-.list li[data-t="bad"] .dot{ background: var(--bad); }
-.list li[data-t="warn"] .dot{ background:#c98a00; }
-.linkrow{ background:none; border:0; text-align:left; width:100%; cursor:pointer; padding:0; font:inherit; display:contents; }
-
-/* ============================== AIDE ==================================== */
-
-.doc{ max-width: 860px; display:grid; gap:16px; }
-.doc h3{ font-size: 15px; text-transform:uppercase; margin-bottom:8px; }
-.doc p{ font-size: 14.5px; color: var(--ink-2); }
-.doc .panel{ padding: 18px; }
-.doc ol{ margin: 0; padding-left: 22px; display:grid; gap:7px; font-size: 14.5px; color: var(--ink-2); }
-.doc ol li::marker{ font-family: var(--f-mono); font-size:12px; color: var(--signal); font-weight:600; }
-.doc dl{ margin:0; display:grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size:14.5px; }
-.doc dt{ font-family: var(--f-mono); font-size: 12px; letter-spacing:.06em; text-transform:uppercase; color: var(--ink-3); padding-top:3px; }
-.doc dd{ margin:0; color: var(--ink-2); }
 
 /* ============================== MODAL =================================== */
 
@@ -439,17 +339,6 @@ td.ro.num{ text-align:right; font-family: var(--f-mono); }
 }
 .field textarea{ min-height: 84px; resize: vertical; line-height:1.45; }
 .fieldset{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
-.fieldset--full{ grid-template-columns: 1fr; }
-.legend{ font-family: var(--f-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
-  color:#fff; background: var(--ink-2); padding: 4px 9px; border-radius:2px; justify-self:start; }
-.trirow{ display:flex; gap:6px; }
-.trirow button{
-  flex:1; min-height:42px; border:1px solid var(--line-2); background: var(--card); border-radius: var(--r);
-  font-family: var(--f-mono); font-size:13px; font-weight:600; cursor:pointer; color: var(--ink-3);
-}
-.trirow button[aria-pressed="true"][data-v="OK"]{ background: var(--ok-bg); color:var(--ok); border-color: var(--ok); }
-.trirow button[aria-pressed="true"][data-v="NOK"]{ background: var(--bad-bg); color:var(--bad); border-color: var(--bad); }
-.trirow button[aria-pressed="true"][data-v="N-A"]{ background: var(--mute-bg); color:var(--ink-2); border-color: var(--line-2); }
 
 .toast{
   position: fixed; left:50%; bottom: calc(22px + env(safe-area-inset-bottom)); transform: translateX(-50%);
@@ -466,6 +355,17 @@ td.ro.num{ text-align:right; font-family: var(--f-mono); }
   body.nav-open .rail{ transform: translateX(0); }
   .main{ margin-left:0; }
   .burger{ display:flex; }
+}
+
+/* Tablette en portrait : les colonnes passent en proportion pour que la ligne
+   entière tienne à l'écran. L'opérateur remplit sans jamais défiler de côté.
+   Sous 700px il n'y a plus assez de place — on redonne les largeurs en pixels
+   et le défilement latéral, la fiche de ligne prenant le relais. */
+@media (min-width: 700px) and (max-width: 1099px){
+  table.grid{ table-layout: fixed; width:100%; min-width:0; }
+  .grid col{ width: var(--p) !important; }
+  .grid .stick{ position: static; }
+  .grid .stick--last{ box-shadow:none; }
 }
 
 @media (max-width: 860px){
@@ -506,24 +406,23 @@ td.ro.num{ text-align:right; font-family: var(--f-mono); }
 /* ============================== IMPRESSION ============================== */
 
 @media print{
-  .rail, .topbar, .scrim, .modal, .toast, .panel__foot, .rowbtn, .no-print{ display:none !important; }
+  .rail, .topbar, .scrim, .modal, .toast, .panel__foot, .rowbtn{ display:none !important; }
   html, body{ background:#fff; overflow: visible; }
   .main{ margin:0; height:auto; overflow: visible; display:block; }
-  .view, .view--table{ padding:0; overflow: visible; display:block; height:auto; }
-  .view--table > .panel{ display:block; }
+  .view{ padding:0; overflow: visible; display:block; height:auto; }
+  .view > .panel{ display:block; }
   .panel{ border:0; box-shadow:none; background:#fff; }
   .panel__head{ padding: 0 0 8px; border:0; }
-  .tablewrap{ max-height:none; overflow: visible; }
-  table.grid{ width:100% !important; min-width:0 !important; font-size: 8.5pt; table-layout: auto; }
+  .tablewrap{ overflow: visible; }
+  table.grid{ width:100% !important; min-width:0 !important; font-size: 9.5pt; table-layout: auto; }
   .grid col{ width:auto !important; }
   .grid th, .grid td{ border:1px solid #999 !important; }
   .grid .stick, .grid thead th{ position: static !important; box-shadow:none !important; }
   .grid thead th{ background:#eee !important; color:#000; }
-  .grid thead tr.groups th{ background:#ddd !important; color:#000; }
-  .grid thead tr.groups th.g-lead span{ position: static; width:auto; background:none; color:#000; }
   .cell{ height:auto; padding:2px 4px; }
   .grid tbody tr td{ background:#fff !important; box-shadow:none !important; }
   .grid tbody tr{ break-inside: avoid; }
-  .tag{ border:1px solid #999; }
-  @page{ size: A4 landscape; margin: 8mm; }
+  /* Trois à six colonnes : le portrait suffit, et c'est le sens de lecture
+     d'une feuille qu'on signe. */
+  @page{ size: A4 portrait; margin: 10mm; }
 }

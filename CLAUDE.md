@@ -17,8 +17,8 @@ toute modification du site doit rester servable en fichiers statiques bruts.
 - **Données locales.** Tout vit dans `localStorage` du poste. Aucun appel réseau, aucun
   compte, aucune donnée qui sort. Toute évolution vers une base partagée est un choix
   d'archi structurant → à valider avant.
-- **Le schéma est la source de vérité.** Ajouter une colonne / un poste / une machine se
-  fait uniquement dans `assets/js/schema.js`. Si une évolution oblige à toucher au rendu
+- **Le schéma est la source de vérité.** Ajouter une colonne, un tableau ou une machine
+  se fait uniquement dans `assets/js/schema.js`. Si une évolution oblige à toucher au rendu
   dans `app.js`, c'est probablement que le type de colonne manque — l'ajouter au moteur
   plutôt que de faire un cas particulier.
 - **Compatibilité des données.** `Store.load()` repart toujours du schéma courant et

@@ -9,8 +9,11 @@ impression &amp; découpe.
 | **DTF — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
 | **Roland UV — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
 
-Deux écrans de suivi s'ajoutent, en lecture seule : **Historique** et
-**Corbeille**. Voir [Rien ne se perd](#rien-ne-se-perd).
+Le rail ne montre que ces trois écrans. Deux écrans de suivi existent toujours,
+en lecture seule, mais **sans lien dans la navigation** : ils s'ouvrent à
+l'adresse `#/journal` (Historique) et `#/corbeille` (Corbeille). Ils continuent
+d'enregistrer et de conserver — voir [Rien ne se perd](#rien-ne-se-perd) —, ils
+ne s'affichent simplement plus d'un clic.
 
 ### Rappels d'entretien
 
@@ -62,9 +65,6 @@ Pas dans l'interface, gardées ici pour ne pas les perdre.
   colonne suivante.
 - **Bouton numéroté** en début de ligne : ouvre la ligne entière en plein écran
   (pratique sur tablette) et permet de la mettre à la corbeille.
-- **Poste** (bas de la barre latérale) : le nom de la machine — « Tablette
-  atelier », « PC bureau ». Il signe chaque écriture dans l'historique et permet
-  de savoir d'où vient une ligne quand on remonte une sauvegarde.
 - **Recherche** : filtre le tableau affiché, sur toutes les colonnes à la fois.
 - **CSV** : s'ouvre directement dans Excel (séparateur `;`, UTF-8 BOM).
 - **Imprimer** : sort le tableau en A4 portrait sans l'interface, pour signature
@@ -74,20 +74,22 @@ Pas dans l'interface, gardées ici pour ne pas les perdre.
 
 Ce que le site garantit, à l'intérieur d'un poste :
 
-- **Historique.** Chaque écriture est consignée : quand, quel écran, quelle
-  ligne, quel champ, la valeur **avant** et la valeur **après**, et le poste.
-  Le journal est en ajout seul — aucune entrée ne se modifie ni ne s'efface. Les
-  frappes successives dans un même champ sont regroupées en une entrée, sinon
-  taper « turbine » en produirait sept. Export CSV comme les tableaux.
-- **Corbeille.** Une ligne retirée d'un tableau ne disparaît pas : elle part à la
-  corbeille, reste dans la sauvegarde `.json` et se remet en place d'un bouton.
-  Il n'existe aucune suppression définitive dans l'interface.
+- **Historique** (`#/journal`). Chaque écriture est consignée : quand, quel
+  écran, quelle ligne, quel champ, la valeur **avant** et la valeur **après**,
+  et le poste. Le journal est en ajout seul — aucune entrée ne se modifie ni ne
+  s'efface. Les frappes successives dans un même champ sont regroupées en une
+  entrée, sinon taper « turbine » en produirait sept. Export CSV comme les
+  tableaux.
+- **Corbeille** (`#/corbeille`). Une ligne retirée d'un tableau ne disparaît
+  pas : elle part à la corbeille, reste dans la sauvegarde `.json` et se remet
+  en place d'un bouton. Il n'existe aucune suppression définitive dans
+  l'interface.
 - **Alerte d'écriture.** Si le navigateur refuse d'enregistrer (stockage plein ou
   bloqué), un bandeau rouge le dit et le voyant passe à « Non enregistré ». Plus
   d'échec silencieux : avant, la saisie continuait dans le vide.
 - **Stockage protégé.** Au démarrage, le site demande au navigateur de ne pas
-  vider ce stockage quand la place manque. L'état obtenu se lit en bas de la
-  barre latérale.
+  vider ce stockage quand la place manque. La demande part toujours ; l'état
+  obtenu ne s'affiche plus (`Store.durable()` le donne en console).
 - **Rappel de sauvegarde.** Un bandeau apparaît au bout de sept jours sans
   `Sauvegarde .json`, et tant qu'aucune n'a été faite.
 - **Filet à la restauration.** `Restaurer` télécharge d'abord l'état courant,

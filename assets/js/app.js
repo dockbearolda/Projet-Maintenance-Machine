@@ -608,28 +608,12 @@ function toast(msg) {
   toastT = setTimeout(() => { t.hidden = true; }, 2600);
 }
 
-/* Le rail dit trois choses : quand ça a été écrit ici, quand ça a été sorti sur
-   disque, et si le navigateur s'est engagé à ne pas vider ce stockage. */
-function updateStorageNote() {
-  const d = Store.updatedAt();
-  const b = Store.backupAt();
-  const dur = Store.durable();
-  $('#storageNote').textContent = [
-    d ? 'Écrit ici ' + quand(d) : 'Aucune donnée enregistrée',
-    b ? 'Sauvegardé ' + quand(b) : 'Jamais sauvegardé sur disque',
-    dur === true ? 'Stockage protégé par le navigateur'
-      : dur === false ? 'Stockage non protégé — sauvegarde souvent'
-        : 'Protection du stockage inconnue',
-  ].join('\n');
-}
-
 let etatPrecedent = null;
 Store.onState((s) => {
   const box = $('#saver');
   box.dataset.state = s;
   box.querySelector('span').textContent =
     s === 'error' ? 'Non enregistré' : s === 'dirty' ? 'Saisie…' : 'Enregistré';
-  if (s !== 'dirty') updateStorageNote();
   // Le bandeau ne se repeint qu'au basculement : pendant la frappe, l'écriture
   // se déclenche toutes les 350 ms.
   if ((s === 'error') !== (etatPrecedent === 'error')) renderAlertes();
@@ -647,7 +631,6 @@ function toggleNav(open) {
 function sauvegarde() {
   Store.backup();
   toast('Sauvegarde téléchargée');
-  updateStorageNote();
   renderAlertes();
 }
 
@@ -684,7 +667,6 @@ $('#fileRestore').addEventListener('change', async (e) => {
   try {
     const bilan = await Store.restore(f);
     render();
-    updateStorageNote();
     toast(`Restauré · ${bilan.lignes} ligne(s), ${bilan.journal} entrée(s) d’historique reprises`);
   } catch (err) {
     alert('Restauration impossible : ' + err.message
@@ -693,18 +675,8 @@ $('#fileRestore').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
-/* Le nom du poste distingue la tablette du PC dans l'historique. Il reste
-   attaché à la machine : une restauration de sauvegarde ne l'emporte pas. */
-const champPoste = $('#poste');
-champPoste.value = Store.poste();
-champPoste.addEventListener('change', () => {
-  Store.setPoste(champPoste.value);
-  champPoste.value = Store.poste();
-  toast('Poste enregistré');
-});
-
 window.addEventListener('hashchange', route);
-updateStorageNote();
 route();
 // Demande au navigateur de ne pas vider ce stockage quand la place manque.
-Store.durabilite().then(updateStorageNote);
+// Plus rien n'affiche la réponse, mais la demande, elle, protège les données.
+Store.durabilite();

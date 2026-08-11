@@ -154,6 +154,9 @@ const OPS = {
 
 /* --- navigation ---------------------------------------------------------- */
 
+/* Les trois machines, rien d'autre. Les écrans de suivi restent déclarés dans
+   ECRANS et donc accessibles par l'URL (#/journal, #/corbeille) : une ligne
+   mise à la corbeille doit rester récupérable, même sans lien dans le rail. */
 const NAV = [
   {
     label: null,
@@ -161,13 +164,6 @@ const NAV = [
       { id: 'trotec_nettoyage', label: 'Trotec — nettoyages' },
       { id: 'dtf_pieces', label: 'DTF — pièces' },
       { id: 'roland_pieces', label: 'Roland UV — pièces' },
-    ],
-  },
-  {
-    label: 'Suivi',
-    items: [
-      { id: 'journal', label: 'Historique' },
-      { id: 'corbeille', label: 'Corbeille' },
     ],
   },
 ];

@@ -24,6 +24,15 @@ toute modification du site doit rester servable en fichiers statiques bruts.
 - **Compatibilité des données.** `Store.load()` repart toujours du schéma courant et
   conserve les lignes déjà saisies. Ne jamais casser ça : les données de l'atelier ne sont
   pas régénérables.
+- **Rien ne s'efface.** `data.journal` est en ajout seul, et retirer une ligne la met dans
+  `data.trash` — il n'existe aucune suppression définitive. Ne pas introduire de chemin qui
+  en crée une, ni qui réécrit une entrée de journal. Seule exception, assumée : la
+  coalescence de `noteModif()`, qui prolonge la dernière entrée tant qu'on tape dans le
+  même champ de la même ligne. `restore()` remplace les tableaux mais **fusionne** journal
+  et corbeille : l'historique ne recule jamais.
+- **Un échec d'écriture se voit.** `persist()` remonte l'erreur par un état `error`, et
+  `renderAlertes()` en fait un bandeau qui reste. Ne jamais retomber sur un `catch` muet :
+  croire que c'est enregistré est pire que de savoir que ça ne l'est pas.
 - **Un seul point d'injection HTML** : la fonction `paint()` dans `app.js`. Toute valeur
   saisie passe par `esc()` avant d'y arriver. Ne pas introduire d'autre chemin.
 
@@ -37,5 +46,8 @@ cibles ≥ 44 px, pas d'action qui dépend du survol, pas de double-clic.
 
 - `node --check` sur les trois fichiers JS.
 - Rendu à 390 px, 800 × 1280, 1280 × 800 et 1440 px.
-- Aller-retour sauvegarde `.json` → restauration.
-- Export CSV : séparateur `;` et BOM UTF-8 (Excel FR).
+- Aller-retour sauvegarde `.json` → restauration : les tableaux reviennent à l'état du
+  fichier, le journal et la corbeille gardent aussi ce qui s'est passé depuis.
+- Export CSV (tableaux **et** historique) : séparateur `;` et BOM UTF-8 (Excel FR).
+- Une ligne mise à la corbeille se retrouve dans l'écran Corbeille et se remet en place.
+- Écriture en échec (`localStorage.setItem` qui jette) : bandeau rouge + « Non enregistré ».

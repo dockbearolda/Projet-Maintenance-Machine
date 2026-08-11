@@ -125,7 +125,22 @@ button{ font: inherit; color: inherit; }
   flex:0 0 auto; padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--rail-3); display:grid; gap:6px;
 }
-.rail__note{ font-family: var(--f-mono); font-size: 10.5px; color:#70767f; line-height:1.4; }
+/* Trois lignes : écrit ici, sauvegardé sur disque, stockage protégé ou non. */
+.rail__note{ font-family: var(--f-mono); font-size: 10.5px; color:#70767f; line-height:1.5; white-space: pre-line; }
+
+/* Le nom du poste : il signe chaque écriture de l'historique. */
+.rail__poste{
+  font-family: var(--f-mono); font-size: 10px; letter-spacing:.14em;
+  text-transform: uppercase; color:#797f89;
+}
+.rail__champ{
+  width:100%; height:44px; padding:0 10px;
+  font: inherit; font-size: 16px; /* 16px : pas de zoom à la saisie sur mobile */
+  color:#fff; background: var(--rail-2);
+  border:1px solid var(--rail-3); border-radius: var(--r);
+}
+.rail__champ::placeholder{ color:#5c626b; }
+.rail__champ:focus{ outline:2px solid var(--signal); outline-offset:0; border-color: var(--signal); }
 
 /* ============================== MAIN ==================================== */
 
@@ -168,6 +183,8 @@ button{ font: inherit; color: inherit; }
   letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); white-space:nowrap; }
 .saver i{ width:7px; height:7px; border-radius:50%; background: var(--ok); }
 .saver[data-state="dirty"] i{ background: #c98a00; }
+.saver[data-state="error"]{ color: var(--bad); font-weight:600; }
+.saver[data-state="error"] i{ background: var(--bad); }
 
 /* Le tableau occupe toute la hauteur restante : en-têtes figés en haut, seul
    le corps du tableau défile. */
@@ -360,6 +377,71 @@ select.cell{ appearance:none; cursor:pointer;
 
 .scrim{ position:fixed; inset:0; z-index:35; background: rgba(22,24,28,.45); }
 
+/* ============================== ALERTES ================================= */
+
+/* Sous la barre du haut, au-dessus du tableau : ça se voit sans défiler, et ça
+   ne recouvre aucune commande. Le bandeau reste tant que la cause dure —
+   contrairement au toast, il n'y a rien à rattraper du coin de l'œil. */
+.alertes{ flex:0 0 auto; }
+.alertes:empty{ display:none; }
+
+.alerte{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding: 11px 20px; border-bottom:1px solid var(--line-2);
+}
+.alerte b{
+  flex:0 0 auto; font-family: var(--f-cond); font-size:13.5px;
+  letter-spacing:.06em; text-transform: uppercase;
+}
+.alerte span{ flex:1 1 240px; font-size:13.5px; line-height:1.35; }
+.alerte .btn{ flex:0 0 auto; margin-left:auto; }
+
+.alerte--bad{ background: var(--bad-bg); color: var(--bad); border-bottom-color:#e0bbb9; }
+.alerte--bad .btn{ background:#fff; color: var(--bad); border-color: var(--bad); }
+.alerte--warn{ background: var(--warn-bg); color: var(--warn); border-bottom-color:#e5cfa4; }
+.alerte--warn .btn{ background:#fff; color: var(--warn); border-color:#c99b48; }
+
+/* ============================== SUIVI =================================== */
+
+/* Historique et corbeille : on lit, on ne saisit pas. Sans champ dans la
+   cellule, il faut lui redonner la hauteur de frappe pour que la ligne garde
+   le gabarit des tableaux de saisie. */
+/* Largeurs fixes : sans champ pour borner la cellule, une remarque un peu
+   longue étirerait sa colonne et pousserait les suivantes hors de l'écran.
+   La colonne garde sa largeur, le texte trop long se coupe aux points. */
+table.grid--lecture{ table-layout: fixed; min-width: 100%; }
+/* Une valeur trop longue passe à la ligne : couper au point obligerait à
+   survoler pour lire la fin, et l'atelier travaille au doigt avec des gants.
+   La ligne grandit, l'information reste entière. */
+.grid--lecture td{ height: 44px; padding: 7px 9px; font-size: 13.5px; }
+.grid--lecture td span{ display:block; overflow-wrap: anywhere; line-height:1.3; }
+.grid--lecture .stick{ font-family: var(--f-mono); font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.grid--lecture .vide{ color:#b3aea3; font-style: normal; font-size:12px; }
+
+/* Un liseré en tête de ligne dit l'action sans ajouter de colonne. */
+.grid--lecture tbody tr[data-t="ok"] td:first-child{ box-shadow: inset 3px 0 0 var(--ok); }
+.grid--lecture tbody tr[data-t="warn"] td:first-child{ box-shadow: inset 3px 0 0 var(--warn); }
+.grid--lecture tbody tr[data-t="bad"] td:first-child{ box-shadow: inset 3px 0 0 var(--bad); }
+
+/* Le journal ne se peint pas en entier : on annonce ce qui reste. */
+.plus{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding: 12px 16px; border-top:1px solid var(--line); background: var(--mute-bg);
+  font-family: var(--f-mono); font-size:12px; color: var(--ink-3);
+}
+.plus .btn{ margin-left:auto; }
+
+.trash{ list-style:none; margin:0; padding:0; }
+.trashline{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding: 12px 16px; border-bottom:1px solid var(--line); background: var(--card);
+}
+.trashline:nth-child(even){ background:#faf8f3; }
+.trashline__id{ flex:1 1 240px; min-width:0; }
+.trashline__id b{ display:block; font-size:14.5px; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trashline__id span{ font-family: var(--f-mono); font-size:11.5px; color: var(--ink-3); }
+.trashline .btn{ flex:0 0 auto; }
+
 /* ============================== RESPONSIVE ============================== */
 
 @media (max-width: 1099px){
@@ -373,11 +455,14 @@ select.cell{ appearance:none; cursor:pointer;
    entière tienne à l'écran. L'opérateur remplit sans jamais défiler de côté.
    Sous 700px il n'y a plus assez de place — on redonne les largeurs en pixels
    et le défilement latéral, la fiche de ligne prenant le relais. */
+/* L'historique en est exclu : ses huit colonnes tassées à la largeur du
+   portrait seraient illisibles. Il garde ses pixels et son défilement latéral —
+   c'est un écran de consultation, pas de saisie. */
 @media (min-width: 700px) and (max-width: 1099px){
-  table.grid{ table-layout: fixed; width:100%; min-width:0; }
-  .grid col{ width: var(--p) !important; }
-  .grid .stick{ position: static; }
-  .grid .stick--last{ box-shadow:none; }
+  table.grid:not(.grid--lecture){ table-layout: fixed; width:100%; min-width:0; }
+  .grid:not(.grid--lecture) col{ width: var(--p) !important; }
+  .grid:not(.grid--lecture) .stick{ position: static; }
+  .grid:not(.grid--lecture) .stick--last{ box-shadow:none; }
 }
 
 @media (max-width: 860px){
@@ -387,7 +472,14 @@ select.cell{ appearance:none; cursor:pointer;
   .topbar__id{ flex:1 1 auto; }
   .topbar__machine{ display:none; }
   .topbar__view{ font-size: 16px; }
+  /* « Non enregistré » reste lisible même quand la place manque : c'est la
+     seule mention qui ne doit jamais passer inaperçue. */
   .saver span{ display:none; }
+  .saver[data-state="error"] span{ display:inline; }
+  .alerte{ padding: 10px 12px; gap:8px; }
+  .alerte .btn{ margin-left:0; flex:1 0 100%; }
+  .trashline{ padding: 12px; }
+  .trashline .btn{ flex:1 0 100%; }
   .topbar__tools{
     order: 3; flex: 1 0 100%; margin-left: 0;
     overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 2px;
@@ -418,7 +510,7 @@ select.cell{ appearance:none; cursor:pointer;
 /* ============================== IMPRESSION ============================== */
 
 @media print{
-  .rail, .topbar, .scrim, .modal, .toast, .panel__foot, .rowbtn{ display:none !important; }
+  .rail, .topbar, .alertes, .scrim, .modal, .toast, .panel__foot, .rowbtn, .plus .btn, .trashline .btn{ display:none !important; }
   html, body{ background:#fff; overflow: visible; }
   .main{ margin:0; height:auto; overflow: visible; display:block; }
   .view{ padding:0; overflow: visible; display:block; height:auto; }
@@ -432,6 +524,10 @@ select.cell{ appearance:none; cursor:pointer;
   .grid .stick, .grid thead th{ position: static !important; box-shadow:none !important; }
   .grid thead th{ background:#eee !important; color:#000; }
   .cell{ height:auto; padding:2px 4px; }
+  .grid--lecture td{ height:auto; padding:2px 4px; }
+  /* Huit colonnes serrées : on rend la main au calcul automatique et on
+     descend la taille, sinon l'historique ne tient pas sur la feuille. */
+  table.grid--lecture{ table-layout: auto; width:100% !important; font-size: 8pt; }
   .grid tbody tr td{ background:#fff !important; box-shadow:none !important; }
   .grid tbody tr{ break-inside: avoid; }
   /* Trois à six colonnes : le portrait suffit, et c'est le sens de lecture

@@ -61,6 +61,16 @@ const TABLES = {
       { key: 'tech', label: 'Technicien',    type: 'text', w: 190 },
       { key: 'obs',  label: 'Remarques',     type: 'long', w: 470 },
     ],
+    // Entretien périodique propre au laser : le bandeau dit quand il retombe,
+    // le bouton consigne la ligne avec le bon libellé. Faute de colonne dédiée
+    // ici, c'est la colonne Remarques qui sert de repère.
+    rappel: {
+      titre: 'Nettoyage de la turbine',
+      mois: 6,
+      cle: 'obs',
+      motCle: 'turbine',
+      valeur: 'Nettoyage turbine',
+    },
     seed: () => [],
   },
 
@@ -74,15 +84,6 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    // Entretien périodique propre à cette machine : le bandeau dit quand il
-    // retombe, le bouton consigne la ligne avec le bon libellé.
-    rappel: {
-      titre: 'Nettoyage de la turbine',
-      mois: 6,
-      cle: 'piece',
-      motCle: 'turbine',
-      valeur: 'Nettoyage turbine',
-    },
     seed: () => [],
   },
 

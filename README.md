@@ -12,13 +12,14 @@ impression &amp; découpe.
 Deux écrans de suivi s'ajoutent, en lecture seule : **Historique** et
 **Corbeille**. Voir [Rien ne se perd](#rien-ne-se-perd).
 
-### Nettoyage de la turbine (DTF)
+### Nettoyage de la turbine (Trotec)
 
-Entretien propre à la Sublistar, à faire **tous les 6 mois**. Un bandeau en tête
-du tableau DTF annonce la dernière fois qu'il a été fait et quand tombe le
+Entretien propre au laser, à faire **tous les 6 mois**. Un bandeau en tête du
+tableau Trotec annonce la dernière fois qu'il a été fait et quand tombe le
 prochain ; il passe en rouge dès que l'échéance est dépassée, ou tant que rien
 n'a été consigné. Le bouton **Consigner le nettoyage** ajoute la ligne avec le
-bon libellé, sans avoir à le taper.
+bon libellé dans **Remarques**, sans avoir à le taper — c'est cette colonne que
+le bandeau relit pour dater le dernier passage.
 
 ## Utilisation
 

@@ -9,6 +9,9 @@ impression &amp; découpe.
 | **DTF — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
 | **Roland UV — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
 
+Deux écrans de suivi s'ajoutent, en lecture seule : **Historique** et
+**Corbeille**. Voir [Rien ne se perd](#rien-ne-se-perd).
+
 ### Nettoyage de la turbine (DTF)
 
 Entretien propre à la Sublistar, à faire **tous les 6 mois**. Un bandeau en tête
@@ -26,24 +29,62 @@ bon libellé, sans avoir à le taper.
 - **Clavier** : `Entrée` / `↓` descend d'une ligne, `↑` remonte, `Tab` passe à la
   colonne suivante.
 - **Bouton numéroté** en début de ligne : ouvre la ligne entière en plein écran
-  (pratique sur tablette) et permet de la supprimer.
+  (pratique sur tablette) et permet de la mettre à la corbeille.
+- **Poste** (bas de la barre latérale) : le nom de la machine — « Tablette
+  atelier », « PC bureau ». Il signe chaque écriture dans l'historique et permet
+  de savoir d'où vient une ligne quand on remonte une sauvegarde.
 - **Recherche** : filtre le tableau affiché, sur toutes les colonnes à la fois.
 - **CSV** : s'ouvre directement dans Excel (séparateur `;`, UTF-8 BOM).
 - **Imprimer** : sort le tableau en A4 portrait sans l'interface, pour signature
   papier.
 
-## Données
+## Rien ne se perd
+
+Ce que le site garantit, à l'intérieur d'un poste :
+
+- **Historique.** Chaque écriture est consignée : quand, quel écran, quelle
+  ligne, quel champ, la valeur **avant** et la valeur **après**, et le poste.
+  Le journal est en ajout seul — aucune entrée ne se modifie ni ne s'efface. Les
+  frappes successives dans un même champ sont regroupées en une entrée, sinon
+  taper « turbine » en produirait sept. Export CSV comme les tableaux.
+- **Corbeille.** Une ligne retirée d'un tableau ne disparaît pas : elle part à la
+  corbeille, reste dans la sauvegarde `.json` et se remet en place d'un bouton.
+  Il n'existe aucune suppression définitive dans l'interface.
+- **Alerte d'écriture.** Si le navigateur refuse d'enregistrer (stockage plein ou
+  bloqué), un bandeau rouge le dit et le voyant passe à « Non enregistré ». Plus
+  d'échec silencieux : avant, la saisie continuait dans le vide.
+- **Stockage protégé.** Au démarrage, le site demande au navigateur de ne pas
+  vider ce stockage quand la place manque. L'état obtenu se lit en bas de la
+  barre latérale.
+- **Rappel de sauvegarde.** Un bandeau apparaît au bout de sept jours sans
+  `Sauvegarde .json`, et tant qu'aucune n'a été faite.
+- **Filet à la restauration.** `Restaurer` télécharge d'abord l'état courant,
+  puis remplace les tableaux par le fichier. L'historique et la corbeille, eux,
+  sont **fusionnés** : revenir en arrière sur les tableaux ne fait pas reculer
+  l'historique, on voit toujours ce qui a existé entre-temps.
+- Une table retirée du schéma n'est pas effacée : ses lignes restent dans le
+  stockage et dans la sauvegarde.
+
+## Données — ce qui n'est pas garanti
 
 Tout est stocké dans le **navigateur du poste** (`localStorage`) — aucun serveur,
-aucune donnée envoyée sur Internet. Conséquences pratiques :
+aucune donnée envoyée sur Internet. Conséquences pratiques, que rien de ce qui
+précède ne corrige :
 
-- Les données ne suivent pas d'un poste à l'autre ni d'un navigateur à l'autre.
-- Vider les données du navigateur efface la saisie.
-- **Faire une `Sauvegarde .json` une fois par mois** (bouton en bas de la barre
-  latérale) sur le réseau ou une clé USB. `Restaurer` relit ce fichier.
+- **Les données ne suivent pas d'un poste à l'autre.** La tablette et le PC ont
+  deux bases séparées qui ne se parlent jamais. Idem entre l'adresse Railway et
+  celle de GitHub Pages : deux origines, deux stockages.
+- **Vider les données du navigateur efface la saisie.** La demande de stockage
+  protégé n'empêche pas un effacement volontaire par l'opérateur.
+- **Un poste perdu, c'est les données du poste.** Seule la `Sauvegarde .json`
+  sortie du navigateur protège de ça.
 
-Une table retirée du schéma n'est pas effacée pour autant : ses lignes restent
-dans le stockage et dans la sauvegarde. Rien de ce qui a été saisi ne disparaît.
+D'où la règle : **`Sauvegarde .json` une fois par semaine** (bouton en bas de la
+barre latérale) sur le réseau ou une clé USB. Le fichier contient les tableaux,
+l'historique et la corbeille. `Restaurer` le relit.
+
+Un vrai suivi partagé entre la tablette et le PC demande une base commune, donc
+un serveur : c'est un choix d'archi structurant, hors du périmètre actuel.
 
 ## Mise en ligne
 
@@ -67,9 +108,9 @@ Aucune dépendance, aucune étape de build. Cinq fichiers :
 ```
 index.html
 assets/css/app.css
-assets/js/schema.js   les trois tableaux, leurs colonnes, la navigation
-assets/js/store.js    persistance, sauvegarde/restauration, export CSV
-assets/js/app.js      routage, rendu des tableaux, fiche de ligne
+assets/js/schema.js   les tableaux, les écrans de suivi, la navigation
+assets/js/store.js    persistance, journal, corbeille, sauvegarde, export CSV
+assets/js/app.js      routage, rendu des tableaux et du suivi, fiche de ligne
 ```
 
 Infrastructure : `Dockerfile`, `Caddyfile`, `railway.json`. Ces trois fichiers ne
@@ -94,6 +135,15 @@ proportions pour éviter le défilement latéral.
 **Ajouter un entretien périodique** : donner à la table un objet `rappel`
 (`titre`, `mois`, `cle`, `motCle`, `valeur`). Le bandeau et son bouton sont
 rendus par le moteur — rien à écrire de plus, pour n'importe quelle table.
+
+**Écrans de suivi** : déclarés dans `ECRANS` (même fichier), avec une clé `vue`
+qui désigne le rendu correspondant dans `app.js`. Ils n'ont pas de `seed` : ils
+lisent ce que le store a gardé, ils ne stockent rien eux-mêmes.
+
+**Identité des lignes** : chaque ligne porte un `_id` posé à la création, et
+récupéré à la volée pour les lignes d'avant l'historique. C'est lui qui relie une
+ligne à ses entrées de journal — l'indice ne suffirait pas, les tableaux insèrent
+en tête. Il ne s'affiche jamais et ne sort pas au CSV.
 
 ## Cibles
 

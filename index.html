@@ -28,6 +28,9 @@
   </div>
   <nav class="rail__nav" id="nav"></nav>
   <div class="rail__foot">
+    <label class="rail__poste" for="poste">Poste</label>
+    <input type="text" id="poste" class="rail__champ" maxlength="24" autocomplete="off"
+           placeholder="Tablette atelier" aria-describedby="storageNote">
     <button type="button" class="btn btn--ghost btn--block" id="btnBackup">Sauvegarde .json</button>
     <button type="button" class="btn btn--ghost btn--block" id="btnRestore">Restaurer</button>
     <input type="file" id="fileRestore" accept="application/json" hidden>
@@ -49,6 +52,7 @@
     <div class="topbar__tools" id="tools"></div>
     <div class="saver" id="saver" aria-live="polite"><i></i><span>Enregistré</span></div>
   </header>
+  <div class="alertes" id="alertes" aria-live="polite"></div>
   <div class="view" id="view"></div>
 </main>
 

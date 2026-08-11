@@ -3,6 +3,16 @@
    Un seul endroit à modifier pour ajouter une machine ou une colonne.
    ========================================================================= */
 
+/**
+ * Identifiant de ligne. Stable, il survit aux insertions en tête, aux tris et
+ * aux allers-retours par la sauvegarde .json : c'est lui qui relie une ligne à
+ * son historique. randomUUID demande https ou localhost, d'où le repli.
+ */
+function uid() {
+  if (self.crypto && self.crypto.randomUUID) return self.crypto.randomUUID();
+  return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
 /** Date locale au format YYYY-MM-DD (toISOString décalerait d'un jour en UTC+n). */
 function ymdLocal(d) {
   return d.getFullYear() + '-' +
@@ -90,6 +100,55 @@ const TABLES = {
   },
 };
 
+/* --- écrans de suivi ------------------------------------------------------
+   Ils ne se saisissent pas : ils donnent à voir ce que le store a conservé.
+   Déclarés ici comme les tableaux pour que la navigation tienne dans un seul
+   fichier ; `vue` désigne le rendu correspondant dans app.js. */
+
+const ECRANS = {
+
+  journal: {
+    id: 'journal',
+    machine: 'Suivi',
+    title: 'Historique',
+    subtitle: 'Chaque écriture, dans l’ordre, avec la valeur d’avant. Rien ne s’y modifie, rien ne s’en efface.',
+    vue: 'journal',
+    // Somme ≈ 1000 px : l'historique tient sans défilement latéral sur la
+    // tablette en paysage (1280 moins le rail et les marges). Les valeurs trop
+    // longues passent à la ligne au lieu d'élargir la colonne — l'opérateur en
+    // gants ne peut pas survoler pour lire une infobulle.
+    columns: [
+      { key: 't',      label: 'Quand',  w: 150, stick: true },
+      { key: 'table',  label: 'Écran',  w: 105 },
+      { key: 'op',     label: 'Action', w: 128 },
+      { key: 'resume', label: 'Ligne',  w: 190 },
+      { key: 'champ',  label: 'Champ',  w: 88 },
+      { key: 'avant',  label: 'Avant',  w: 128 },
+      { key: 'apres',  label: 'Après',  w: 128 },
+      { key: 'poste',  label: 'Poste',  w: 82 },
+    ],
+  },
+
+  corbeille: {
+    id: 'corbeille',
+    machine: 'Suivi',
+    title: 'Corbeille',
+    subtitle: 'Les lignes retirées des tableaux. Elles restent dans le fichier et se remettent en place d’un bouton.',
+    vue: 'corbeille',
+  },
+};
+
+/** Libellés d'action du journal. Le ton colore la ligne à l'écran. */
+const OPS = {
+  ajout:        { label: 'Ajout',           t: 'ok' },
+  modif:        { label: 'Modification',    t: '' },
+  corbeille:    { label: 'Corbeille',       t: 'bad' },
+  restauration: { label: 'Remise en place', t: 'ok' },
+  import:       { label: 'Restauration',    t: 'warn' },
+  sauvegarde:   { label: 'Sauvegarde',      t: 'ok' },
+  depart:       { label: 'Ouverture',       t: '' },
+};
+
 /* --- navigation ---------------------------------------------------------- */
 
 const NAV = [
@@ -99,6 +158,13 @@ const NAV = [
       { id: 'trotec_nettoyage', label: 'Trotec — nettoyages' },
       { id: 'dtf_pieces', label: 'DTF — pièces' },
       { id: 'roland_pieces', label: 'Roland UV — pièces' },
+    ],
+  },
+  {
+    label: 'Suivi',
+    items: [
+      { id: 'journal', label: 'Historique' },
+      { id: 'corbeille', label: 'Corbeille' },
     ],
   },
 ];

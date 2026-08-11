@@ -19,13 +19,14 @@
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "no-referrer"
 		-Server
-	}
 
-	# Tout est revalidé : cinq fichiers, l'ETag renvoie un 304 quand rien n'a
-	# bougé. Un max-age sur /assets/* laissait l'atelier sur une version périmée
-	# pendant une heure après un correctif — inacceptable pour un poste unique.
-	header /index.html Cache-Control "no-cache"
-	header /assets/* Cache-Control "no-cache"
+		# Sans matcher : s'applique à « / », aux replis try_files et aux cinq
+		# fichiers. Une règle par chemin ne couvrait pas « / » — l'URL que
+		# l'atelier utilise justement — qui repartait donc sans consigne de
+		# cache, libre au navigateur de garder une version périmée après un
+		# correctif. Tout est revalidé, l'ETag renvoie 304 si rien n'a bougé.
+		Cache-Control "no-cache"
+	}
 
 	log {
 		output stdout

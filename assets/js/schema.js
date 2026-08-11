@@ -86,34 +86,6 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    // Consignes du fournisseur Sublistar. Il assume qu'il n'y a pas de règle
-    // ferme ici : les captops se jugent au nombre de Cleaning, les dampers au
-    // résultat des tests print. On date donc le dernier passage sans annoncer
-    // d'échéance qu'on aurait inventée.
-    rappels: [
-      {
-        titre: 'Captops',
-        mois: 3,
-        cle: 'piece',
-        motCle: 'captop',
-        valeur: 'Captops',
-        regle: 'ou 6 mois s’il ne faut pas enchaîner les Cleaning',
-      },
-      {
-        titre: 'Wiper (essuyeur)',
-        mois: 6,
-        cle: 'piece',
-        motCle: ['wiper', 'essuyeur'],
-        valeur: 'Wiper (essuyeur)',
-      },
-      {
-        titre: 'Dampers',
-        cle: 'piece',
-        motCle: 'damper',
-        valeur: 'Dampers',
-        regle: 'au résultat des tests print — de 6 mois à 1 an selon l’usage',
-      },
-    ],
     seed: () => [],
   },
 
@@ -127,26 +99,6 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    // Consignes du fournisseur Roland. L'essuyeur, le feutre et l'éponge ne se
-    // suivent pas au calendrier : c'est la machine qui réclame. On les groupe
-    // donc en un seul bandeau, qui date le dernier passage sans échéance. Pas
-    // de `valeur` : trois pièces, aucun libellé unique à pré-remplir.
-    rappels: [
-      {
-        titre: 'Captops (x2)',
-        mois: 6,
-        cle: 'piece',
-        motCle: 'captop',
-        valeur: 'Captops (x2)',
-        regle: 'conseil du constructeur',
-      },
-      {
-        titre: 'Essuyeur, feutre blanc, éponge de purge',
-        cle: 'piece',
-        motCle: ['essuyeur', 'wiper', 'feutre', 'éponge', 'eponge', 'mousse'],
-        regle: 'pas de calendrier — la machine alerte, cloche sur le panneau de commande',
-      },
-    ],
     seed: () => [],
   },
 };

@@ -14,40 +14,43 @@ Deux écrans de suivi s'ajoutent, en lecture seule : **Historique** et
 
 ### Rappels d'entretien
 
-En tête de chaque tableau, un bandeau par pièce à surveiller. Il relit le
-tableau lui-même — la dernière ligne qui mentionne la pièce — et le bouton
-**Consigner** ajoute la ligne pré-remplie, sans avoir à taper le libellé.
+Un seul aujourd'hui : **nettoyage de la turbine**, tous les 6 mois, en tête du
+tableau Trotec. Le bandeau relit le tableau lui-même — la dernière ligne dont
+les Remarques mentionnent la turbine — annonce la prochaine échéance et **passe
+en rouge** dès qu'elle est dépassée, ou tant que rien n'a été consigné. Le
+bouton **Consigner le nettoyage** ajoute la ligne pré-remplie.
+
+La DTF et la Roland n'en ont pas : les rythmes existent (voir les consignes du
+fournisseur plus bas) mais l'atelier les suit sans bandeau.
+
+Tout se déclare dans `assets/js/schema.js`, clé `rappels` du tableau concerné.
+Le moteur sait faire plus que ce qui est branché :
+
+| Clé | Effet | Si absente |
+|---|---|---|
+| `mois` | pose l'échéance, rouge une fois dépassée | pas d'échéance, on date juste le dernier passage |
+| `motCle` | ce qu'on cherche dans la colonne `cle` | pas de suivi, la `regle` est tout le message |
+| `valeur` | le libellé que le bouton écrit | pas de bouton |
+| `regle` | la phrase du constructeur, en retrait | — |
+
+`motCle` accepte **plusieurs termes**, et il en faut dès qu'on en rebranche un :
+le fournisseur écrit « wiper » et « mousse rectangle » là où l'atelier tape
+« essuyeur » et « éponge de purge ». Avec un seul mot-clé, le bandeau resterait
+rouge devant une ligne pourtant saisie — et ferait refaire l'entretien pour
+rien. Les termes se mettent en minuscules, accents compris (`'éponge'` ne capte
+pas `Eponge` : mettre les deux).
+
+### Consignes du fournisseur
+
+Pas dans l'interface, gardées ici pour ne pas les perdre.
 
 | Machine | Pièce | Rythme |
 |---|---|---|
-| **Trotec** | Nettoyage de la turbine | 6 mois |
 | **DTF** | Captops | 3 mois, ou 6 s'il ne faut pas enchaîner les Cleaning |
 | **DTF** | Wiper (essuyeur) | 6 mois |
-| **DTF** | Dampers | pas de règle — au résultat des tests print |
+| **DTF** | Dampers | pas de règle — au résultat des tests print, de 6 mois à 1 an |
 | **Roland** | Captops (x2) | 6 mois, conseil du constructeur |
-| **Roland** | Essuyeur, feutre blanc, éponge de purge | pas de calendrier — la machine alerte |
-
-Trois régimes, parce que le constructeur ne dit pas la même chose partout :
-
-- **Échéance fixe.** Le bandeau annonce la prochaine date et **passe en rouge**
-  dès qu'elle est dépassée, ou tant que rien n'a été consigné.
-- **Pas de règle.** Le bandeau date le dernier passage et s'arrête là. Annoncer
-  une échéance qu'aucun constructeur n'a donnée serait pire que de se taire.
-- **La machine alerte.** Rien à suivre dans le tableau : le bandeau rappelle la
-  consigne, et c'est tout.
-
-Tout se déclare dans `assets/js/schema.js`, clé `rappels` du tableau concerné :
-`mois` pose l'échéance, `motCle` désigne ce qu'on cherche dans la colonne `cle`,
-`valeur` est le libellé que le bouton écrit, `regle` porte la phrase du
-constructeur. Sans `mois`, pas d'échéance ; sans `motCle`, pas de suivi ; sans
-`valeur`, pas de bouton.
-
-**`motCle` accepte plusieurs termes**, et il en faut : le fournisseur écrit
-« wiper » et « mousse rectangle » là où l'atelier tape « essuyeur » et « éponge
-de purge ». Avec un seul mot-clé, le bandeau resterait rouge devant une ligne
-pourtant saisie — et ferait refaire l'entretien pour rien. En ajouter un nouveau
-se fait dans le tableau `motCle`, en minuscules, accents compris (`'éponge'` ne
-capte pas `Eponge` : mettre les deux).
+| **Roland** | Essuyeur, feutre blanc, éponge de purge | pas de calendrier — la machine alerte, cloche sur le panneau de commande |
 
 ## Utilisation
 

@@ -28,11 +28,26 @@ const Store = (() => {
           ? parsed.tables[id]
           : TABLES[id].seed();
       }
+      keepOrphans(parsed);
     } catch (e) {
       console.error('Lecture du stockage impossible, réinitialisation.', e);
       data = blank();
     }
     return data;
+  }
+
+  /**
+   * Une table retirée du schéma n'est pas effacée pour autant : ses lignes
+   * restent dans le stockage et dans la sauvegarde .json. Elles ne sont plus
+   * affichées, mais rien n'est perdu — les données de l'atelier ne sont pas
+   * régénérables, et un écran peut revenir.
+   */
+  function keepOrphans(parsed) {
+    for (const id of Object.keys(parsed.tables || {})) {
+      if (!(id in data.tables) && Array.isArray(parsed.tables[id])) {
+        data.tables[id] = parsed.tables[id];
+      }
+    }
   }
 
   function persist() {
@@ -89,11 +104,6 @@ const Store = (() => {
       flush();
     },
 
-    resetTable(id) {
-      data.tables[id] = TABLES[id].seed();
-      flush();
-    },
-
     updatedAt() { return data.updated ? new Date(data.updated) : null; },
 
     /* ------------------------------------------------------ sauvegarde -- */
@@ -122,6 +132,7 @@ const Store = (() => {
                 ? parsed.tables[id]
                 : TABLES[id].seed();
             }
+            keepOrphans(parsed);
             flush();
             resolve();
           } catch (e) { reject(e); }
@@ -141,9 +152,7 @@ const Store = (() => {
       };
       const lines = [cols.map((c) => esc(c.label)).join(';')];
       for (const row of api.rows(id)) {
-        lines.push(cols.map((c) => esc(
-          c.type === 'calc' ? c.calc(row).text : row[c.key]
-        )).join(';'));
+        lines.push(cols.map((c) => esc(row[c.key])).join(';'));
       }
       download(
         `${id}-${today()}.csv`,

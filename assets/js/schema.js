@@ -12,20 +12,27 @@ function ymdLocal(d) {
 
 function today() { return ymdLocal(new Date()); }
 
+/** Date + heure locales au format attendu par <input type="datetime-local">. */
+function nowLocal() {
+  const d = new Date();
+  return ymdLocal(d) + 'T' +
+    String(d.getHours()).padStart(2, '0') + ':' +
+    String(d.getMinutes()).padStart(2, '0');
+}
+
 /* --- tables -------------------------------------------------------------- */
 
 /* Colonnes des deux journaux de pièces : la DTF et la Roland UV se remplissent
-   pareil, on écrit la liste une fois. */
-/* Les largeurs servent aussi de proportions sur tablette en portrait : la
-   colonne Date garde de quoi afficher jj/mm/aaaa et son icône de calendrier
+   pareil, on écrit la liste une fois.
+   Les largeurs servent aussi de proportions sur tablette en portrait : la
+   colonne Date et heure garde de quoi afficher jj/mm/aaaa hh:mm et son icône
    même une fois tout ramené à l'écran. */
 const COLONNES_PIECES = [
-  { key: 'date', label: 'Date',       type: 'date', w: 186, stick: true },
-  { key: 'piece', label: 'Pièce',     type: 'text', w: 220 },
-  { key: 'qte',  label: 'Qté',        type: 'num',  w: 64 },
-  { key: 'cout', label: 'Coût (€)',   type: 'num',  w: 94 },
-  { key: 'tech', label: 'Technicien', type: 'text', w: 134 },
-  { key: 'obs',  label: 'Remarques',  type: 'long', w: 214 },
+  { key: 'date', label: 'Date et heure', type: 'datetime', w: 280, stick: true },
+  { key: 'piece', label: 'Pièce',        type: 'text', w: 230 },
+  { key: 'qte',  label: 'Qté',           type: 'num',  w: 68 },
+  { key: 'tech', label: 'Technicien',    type: 'text', w: 145 },
+  { key: 'obs',  label: 'Remarques',     type: 'long', w: 210 },
 ];
 
 const TABLES = {
@@ -35,14 +42,14 @@ const TABLES = {
     id: 'trotec_nettoyage',
     machine: 'Trotec — laser',
     title: 'Nettoyages complets',
-    subtitle: 'Une ligne = un nettoyage complet. La date du jour est déjà remplie.',
+    subtitle: 'Une ligne = un nettoyage complet. La date et l’heure sont déjà remplies.',
     rowLabel: 'nettoyage',
     prepend: true,
-    addRow: () => ({ date: today() }),
+    addRow: () => ({ date: nowLocal() }),
     columns: [
-      { key: 'date', label: 'Date',       type: 'date', w: 186, stick: true },
-      { key: 'tech', label: 'Technicien', type: 'text', w: 190 },
-      { key: 'obs',  label: 'Remarques',  type: 'long', w: 560 },
+      { key: 'date', label: 'Date et heure', type: 'datetime', w: 280, stick: true },
+      { key: 'tech', label: 'Technicien',    type: 'text', w: 190 },
+      { key: 'obs',  label: 'Remarques',     type: 'long', w: 470 },
     ],
     seed: () => [],
   },
@@ -52,11 +59,20 @@ const TABLES = {
     id: 'dtf_pieces',
     machine: 'Sublistar DTF',
     title: 'Changements de pièces',
-    subtitle: 'Une ligne = une pièce changée. La date du jour est déjà remplie.',
+    subtitle: 'Une ligne = une pièce changée. La date et l’heure sont déjà remplies.',
     rowLabel: 'changement',
     prepend: true,
-    addRow: () => ({ date: today() }),
+    addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
+    // Entretien périodique propre à cette machine : le bandeau dit quand il
+    // retombe, le bouton consigne la ligne avec le bon libellé.
+    rappel: {
+      titre: 'Nettoyage de la turbine',
+      mois: 6,
+      cle: 'piece',
+      motCle: 'turbine',
+      valeur: 'Nettoyage turbine',
+    },
     seed: () => [],
   },
 
@@ -65,10 +81,10 @@ const TABLES = {
     id: 'roland_pieces',
     machine: 'Roland UV',
     title: 'Changements de pièces',
-    subtitle: 'Une ligne = une pièce changée. La date du jour est déjà remplie.',
+    subtitle: 'Une ligne = une pièce changée. La date et l’heure sont déjà remplies.',
     rowLabel: 'changement',
     prepend: true,
-    addRow: () => ({ date: today() }),
+    addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
     seed: () => [],
   },

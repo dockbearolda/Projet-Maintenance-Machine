@@ -66,8 +66,9 @@ function setCrumb(machine, view) {
 
 function cellHtml(col, row, i) {
   const v = row[col.key] ?? '';
+  const isDate = col.type === 'date' || col.type === 'datetime';
   const cls = 'cell' + (col.type === 'num' ? ' cell--num' : '')
-    + (col.type === 'date' ? ' cell--date' + (v ? '' : ' is-empty') : '');
+    + (isDate ? ' cell--date' + (v ? '' : ' is-empty') : '');
   const at = `data-k="${esc(col.key)}" data-i="${i}"`;
 
   switch (col.type) {
@@ -76,6 +77,8 @@ function cellHtml(col, row, i) {
         `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     case 'date':
       return `<input type="date" class="${cls}" ${at} value="${esc(v)}">`;
+    case 'datetime':
+      return `<input type="datetime-local" class="${cls}" ${at} value="${esc(v)}">`;
     case 'num':
       return `<input type="text" inputmode="decimal" class="${cls}" ${at} value="${esc(v)}">`;
     default:
@@ -106,6 +109,46 @@ function headHtml(spec) {
     return `<th${c.stick ? ' class="stick"' : ''}${style}>${esc(c.label)}</th>`;
   }).join('');
   return `<thead><tr class="heads"><th class="stick" style="left:0">#</th>${ths}</tr></thead>`;
+}
+
+/* ---------------------------------------------------------- RAPPEL ------ */
+
+const frDate = (v) => {
+  const d = v instanceof Date ? v : new Date(String(v ?? '').slice(0, 10) + 'T00:00:00');
+  return isNaN(d) ? '' : d.toLocaleDateString('fr-FR');
+};
+
+/**
+ * Entretien périodique déclaré par le schéma (spec.rappel) : on retient la
+ * dernière ligne dont la colonne repère mentionne le mot-clé et on annonce la
+ * prochaine échéance. Une ligne d'interface, aucune saisie de plus — le bouton
+ * consigne l'intervention avec le bon libellé, sans avoir à le taper.
+ */
+function rappelHtml(spec) {
+  const r = spec.rappel;
+  if (!r) return '';
+  const dernier = Store.rows(spec.id)
+    .filter((row) => String(row[r.cle] ?? '').toLowerCase().includes(r.motCle))
+    .map((row) => String(row.date ?? '').slice(0, 10))
+    .filter(Boolean)
+    .sort()
+    .pop();
+
+  let tone = 'bad';
+  let etat = 'jamais consigné — à faire';
+  if (dernier) {
+    const prochain = new Date(dernier + 'T00:00:00');
+    prochain.setMonth(prochain.getMonth() + r.mois);
+    const retard = prochain < new Date(new Date().setHours(0, 0, 0, 0));
+    tone = retard ? 'bad' : 'ok';
+    etat = `dernier le ${frDate(dernier)} · ${retard ? 'dépassé depuis le' : 'prochain le'} ${frDate(prochain)}`;
+  }
+
+  return `<div class="rappel" data-t="${tone}">
+    <b>${esc(r.titre)}</b>
+    <span>tous les ${r.mois} mois — ${esc(etat)}</span>
+    <button type="button" class="btn" data-rappel>Consigner le nettoyage</button>
+  </div>`;
 }
 
 function matches(spec, row) {
@@ -141,6 +184,7 @@ function renderTable(spec) {
         <h2>${esc(spec.title)}</h2>
         <p>${esc(spec.subtitle)}</p>
       </div>
+      ${rappelHtml(spec)}
       <div class="tablewrap">
         <table class="grid">
           <colgroup>${cols}</colgroup>
@@ -207,8 +251,8 @@ function bindTable(spec) {
 
   // Ligne ajoutée en tête, curseur posé sur la première case vide : on
   // enchaîne la saisie sans toucher la souris.
-  const addRow = () => {
-    const row = spec.addRow ? spec.addRow() : {};
+  const addRow = (prerempli) => {
+    const row = Object.assign(spec.addRow ? spec.addRow() : {}, prerempli || {});
     let i;
     if (spec.prepend) { Store.insert(spec.id, 0, row); i = 0; }
     else i = Store.add(spec.id, row);
@@ -220,9 +264,11 @@ function bindTable(spec) {
     const target = cells.find((c) => !c.value) || cells[0];
     if (target) target.focus();
   };
-  $('#btnAdd').addEventListener('click', addRow);
+  $('#btnAdd').addEventListener('click', () => addRow());
   const cta = el.view.querySelector('[data-addrow]');
-  if (cta) cta.addEventListener('click', addRow);
+  if (cta) cta.addEventListener('click', () => addRow());
+  const rappel = el.view.querySelector('[data-rappel]');
+  if (rappel) rappel.addEventListener('click', () => addRow({ [spec.rappel.cle]: spec.rappel.valeur }));
 
   $('#btnCsv').addEventListener('click', () => { Store.exportCsv(spec.id); toast('Export CSV généré'); });
 }
@@ -247,6 +293,7 @@ function openRow(spec, i) {
         break;
       case 'long': input = `<textarea id="${id}" data-k="${k}">${v}</textarea>`; break;
       case 'date': input = `<input type="date" id="${id}" data-k="${k}" value="${v}">`; break;
+      case 'datetime': input = `<input type="datetime-local" id="${id}" data-k="${k}" value="${v}">`; break;
       case 'num':  input = `<input type="text" inputmode="decimal" id="${id}" data-k="${k}" value="${v}">`; break;
       default:     input = `<input type="text" id="${id}" data-k="${k}" value="${v}">`;
     }

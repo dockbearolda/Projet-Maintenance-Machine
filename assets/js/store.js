@@ -152,7 +152,11 @@ const Store = (() => {
       };
       const lines = [cols.map((c) => esc(c.label)).join(';')];
       for (const row of api.rows(id)) {
-        lines.push(cols.map((c) => esc(row[c.key])).join(';'));
+        // Le T de datetime-local n'est pas lu comme une date par Excel :
+        // « 2026-08-11 10:54 » l'est.
+        lines.push(cols.map((c) => esc(
+          c.type === 'datetime' ? String(row[c.key] ?? '').replace('T', ' ') : row[c.key]
+        )).join(';'));
       }
       download(
         `${id}-${today()}.csv`,

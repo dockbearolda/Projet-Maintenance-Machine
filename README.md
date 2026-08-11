@@ -5,14 +5,22 @@ impression &amp; découpe.
 
 | Écran | Une ligne = | Colonnes |
 |---|---|---|
-| **Trotec — nettoyages** | un nettoyage complet | Date, Technicien, Remarques |
-| **DTF — pièces** | une pièce changée | Date, Pièce, Qté, Coût, Technicien, Remarques |
-| **Roland UV — pièces** | une pièce changée | Date, Pièce, Qté, Coût, Technicien, Remarques |
+| **Trotec — nettoyages** | un nettoyage complet | Date et heure, Technicien, Remarques |
+| **DTF — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
+| **Roland UV — pièces** | une pièce changée | Date et heure, Pièce, Qté, Technicien, Remarques |
+
+### Nettoyage de la turbine (DTF)
+
+Entretien propre à la Sublistar, à faire **tous les 6 mois**. Un bandeau en tête
+du tableau DTF annonce la dernière fois qu'il a été fait et quand tombe le
+prochain ; il passe en rouge dès que l'échéance est dépassée, ou tant que rien
+n'a été consigné. Le bouton **Consigner le nettoyage** ajoute la ligne avec le
+bon libellé, sans avoir à le taper.
 
 ## Utilisation
 
-- **`+ Ligne`** ajoute une ligne en tête, avec la date du jour déjà remplie, et
-  pose le curseur sur la première case à saisir.
+- **`+ Ligne`** ajoute une ligne en tête, avec la date **et l'heure** du moment
+  déjà remplies, et pose le curseur sur la première case à saisir.
 - **Saisie directe dans le tableau.** Enregistrement automatique, sans bouton
   « Valider ».
 - **Clavier** : `Entrée` / `↓` descend d'une ligne, `↑` remonte, `Tab` passe à la
@@ -78,10 +86,14 @@ python3 -m http.server 4173
 suivent automatiquement. Les données déjà saisies ne sont pas perdues : au
 chargement, le store repart du schéma courant et conserve les lignes existantes.
 
-Types de colonnes disponibles : `text`, `long`, `num`, `date`, `select`
-(+ `options`). La largeur `w` d'une colonne sert aussi de proportion : sur
-tablette en portrait, les colonnes sont ramenées à l'écran dans ces proportions
-pour éviter le défilement latéral.
+Types de colonnes disponibles : `text`, `long`, `num`, `date`, `datetime`,
+`select` (+ `options`). La largeur `w` d'une colonne sert aussi de proportion :
+sur tablette en portrait, les colonnes sont ramenées à l'écran dans ces
+proportions pour éviter le défilement latéral.
+
+**Ajouter un entretien périodique** : donner à la table un objet `rappel`
+(`titre`, `mois`, `cle`, `motCle`, `valeur`). Le bandeau et son bouton sont
+rendus par le moteur — rien à écrire de plus, pour n'importe quelle table.
 
 ## Cibles
 

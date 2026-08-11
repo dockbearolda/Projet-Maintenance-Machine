@@ -177,14 +177,15 @@ button{ font: inherit; color: inherit; }
   padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 .view > .panel{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
-.view .panel__head, .view .panel__foot{ flex:0 0 auto; }
+.view .panel__head, .view .panel__foot, .view .rappel{ flex:0 0 auto; }
 .view .tablewrap{ flex:1 1 auto; min-height:0; }
 
 /* ============================== CONTROLS ================================ */
 
+/* 44px partout : les boutons se visent au doigt, gants compris. */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
-  min-height: 38px; padding: 0 14px;
+  min-height: 44px; padding: 0 14px;
   font-size: 14px; font-weight:500; white-space:nowrap;
   background: var(--card); color: var(--ink);
   border:1px solid var(--line-2); border-radius: var(--r);
@@ -195,7 +196,7 @@ button{ font: inherit; color: inherit; }
 .btn--primary{ background: var(--ink); color:#fff; border-color: var(--ink); }
 .btn--primary:hover{ background:#000; }
 .btn--signal{ background: var(--signal); color: var(--signal-ink); border-color: var(--signal); }
-.btn--ghost{ background: transparent; color: var(--rail-ink); border-color: var(--rail-3); min-height: 34px; font-size:13px; }
+.btn--ghost{ background: transparent; color: var(--rail-ink); border-color: var(--rail-3); font-size:13px; }
 .btn--ghost:hover{ background: var(--rail-2); color:#fff; border-color:#43484f; }
 .btn--block{ width:100%; }
 .btn--icon{ padding: 0 10px; }
@@ -206,7 +207,7 @@ button{ font: inherit; color: inherit; }
   position:relative; display:flex; align-items:center;
 }
 .search input{
-  height: 38px; width: 210px; max-width: 40vw;
+  height: 44px; width: 210px; max-width: 40vw;
   padding: 0 10px 0 30px;
   font: inherit; font-size: 14px;
   background: var(--card); border:1px solid var(--line-2); border-radius: var(--r); color: var(--ink);
@@ -239,6 +240,17 @@ button{ font: inherit; color: inherit; }
   font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3);
 }
 .foot-note{ margin-left:auto; }
+
+/* Bandeau d'entretien périodique, sous le titre du tableau. */
+.rappel{
+  display:flex; flex-wrap:wrap; align-items:center; gap: 6px 12px;
+  padding: 10px 16px; border-bottom:1px solid var(--line); background:#f6f2e8;
+  font-size: 14px;
+}
+.rappel span{ font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); }
+.rappel .btn{ margin-left:auto; }
+.rappel[data-t="bad"]{ background: var(--bad-bg); border-bottom-color:#e0bbb9; }
+.rappel[data-t="bad"] span{ color: var(--bad); }
 
 .tablewrap{ overflow: auto; overscroll-behavior-x: contain; }
 
@@ -334,7 +346,7 @@ select.cell{ appearance:none; cursor:pointer;
 .field{ display:grid; gap:5px; }
 .field > label{ font-family: var(--f-mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color: var(--ink-3); }
 .field input, .field select, .field textarea{
-  font: inherit; font-size: 16px; padding: 9px 11px; min-height:42px;
+  font: inherit; font-size: 16px; padding: 9px 11px; min-height:44px;
   background: var(--card); border:1px solid var(--line-2); border-radius: var(--r); color: var(--ink); width:100%;
 }
 .field textarea{ min-height: 84px; resize: vertical; line-height:1.45; }

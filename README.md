@@ -12,14 +12,34 @@ impression &amp; découpe.
 Deux écrans de suivi s'ajoutent, en lecture seule : **Historique** et
 **Corbeille**. Voir [Rien ne se perd](#rien-ne-se-perd).
 
-### Nettoyage de la turbine (Trotec)
+### Rappels d'entretien
 
-Entretien propre au laser, à faire **tous les 6 mois**. Un bandeau en tête du
-tableau Trotec annonce la dernière fois qu'il a été fait et quand tombe le
-prochain ; il passe en rouge dès que l'échéance est dépassée, ou tant que rien
-n'a été consigné. Le bouton **Consigner le nettoyage** ajoute la ligne avec le
-bon libellé dans **Remarques**, sans avoir à le taper — c'est cette colonne que
-le bandeau relit pour dater le dernier passage.
+En tête de chaque tableau, un bandeau par pièce à surveiller. Il relit le
+tableau lui-même — la dernière ligne qui mentionne la pièce — et le bouton
+**Consigner** ajoute la ligne pré-remplie, sans avoir à taper le libellé.
+
+| Machine | Pièce | Rythme |
+|---|---|---|
+| **Trotec** | Nettoyage de la turbine | 6 mois |
+| **DTF** | Captops | 3 mois, ou 6 s'il ne faut pas enchaîner les Cleaning |
+| **DTF** | Wiper | 6 mois |
+| **DTF** | Dampers | pas de règle — au résultat des tests print |
+| **Roland** | Captops (x2) | 6 mois, conseil du constructeur |
+| **Roland** | Wiper, feutre blanc, mousse rectangle | pas de calendrier — la machine alerte |
+
+Trois régimes, parce que le constructeur ne dit pas la même chose partout :
+
+- **Échéance fixe.** Le bandeau annonce la prochaine date et **passe en rouge**
+  dès qu'elle est dépassée, ou tant que rien n'a été consigné.
+- **Pas de règle.** Le bandeau date le dernier passage et s'arrête là. Annoncer
+  une échéance qu'aucun constructeur n'a donnée serait pire que de se taire.
+- **La machine alerte.** Rien à suivre dans le tableau : le bandeau rappelle la
+  consigne, et c'est tout.
+
+Tout se déclare dans `assets/js/schema.js`, clé `rappels` du tableau concerné :
+`mois` pose l'échéance, `motCle` désigne ce qu'on cherche dans la colonne `cle`,
+`regle` porte la phrase du constructeur. Sans `mois`, pas d'échéance ; sans
+`motCle`, pas de suivi ni de bouton.
 
 ## Utilisation
 

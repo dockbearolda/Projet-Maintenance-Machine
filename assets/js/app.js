@@ -171,36 +171,53 @@ const frDate = (v) => {
 };
 
 /**
- * Entretien périodique déclaré par le schéma (spec.rappel) : on retient la
- * dernière ligne dont la colonne repère mentionne le mot-clé et on annonce la
- * prochaine échéance. Une ligne d'interface, aucune saisie de plus — le bouton
- * consigne l'intervention avec le bon libellé, sans avoir à le taper.
+ * Entretiens périodiques déclarés par le schéma (spec.rappels) : pour chacun on
+ * retient la dernière ligne dont la colonne repère mentionne le mot-clé et on
+ * annonce la prochaine échéance. Une ligne d'interface, aucune saisie de plus —
+ * le bouton consigne l'intervention avec le bon libellé, sans avoir à le taper.
+ *
+ * Trois régimes, parce que le constructeur ne donne pas la même consigne
+ * partout. `mois` pose une échéance et le bandeau vire au rouge quand elle est
+ * passée. Sans `mois`, on se contente de dater le dernier passage : afficher
+ * une échéance inventée serait pire que rien. Sans `motCle`, il n'y a rien à
+ * suivre dans le tableau — la règle elle-même est tout le message.
  */
 function rappelHtml(spec) {
-  const r = spec.rappel;
-  if (!r) return '';
-  const dernier = Store.rows(spec.id)
-    .filter((row) => String(row[r.cle] ?? '').toLowerCase().includes(r.motCle))
-    .map((row) => String(row.date ?? '').slice(0, 10))
-    .filter(Boolean)
-    .sort()
-    .pop();
+  return (spec.rappels || []).map((r, i) => {
+    let tone = '';
+    let etat = '';
 
-  let tone = 'bad';
-  let etat = 'jamais consigné — à faire';
-  if (dernier) {
-    const prochain = new Date(dernier + 'T00:00:00');
-    prochain.setMonth(prochain.getMonth() + r.mois);
-    const retard = prochain < new Date(new Date().setHours(0, 0, 0, 0));
-    tone = retard ? 'bad' : 'ok';
-    etat = `dernier le ${frDate(dernier)} · ${retard ? 'dépassé depuis le' : 'prochain le'} ${frDate(prochain)}`;
-  }
+    if (r.motCle) {
+      const dernier = Store.rows(spec.id)
+        .filter((row) => String(row[r.cle] ?? '').toLowerCase().includes(r.motCle))
+        .map((row) => String(row.date ?? '').slice(0, 10))
+        .filter(Boolean)
+        .sort()
+        .pop();
 
-  return `<div class="rappel" data-t="${tone}">
-    <b>${esc(r.titre)}</b>
-    <span>tous les ${r.mois} mois — ${esc(etat)}</span>
-    <button type="button" class="btn" data-rappel>Consigner le nettoyage</button>
-  </div>`;
+      if (!dernier) {
+        tone = r.mois ? 'bad' : '';
+        etat = r.mois ? 'jamais consigné — à faire' : 'jamais consigné';
+      } else if (r.mois) {
+        const prochain = new Date(dernier + 'T00:00:00');
+        prochain.setMonth(prochain.getMonth() + r.mois);
+        const retard = prochain < new Date(new Date().setHours(0, 0, 0, 0));
+        tone = retard ? 'bad' : 'ok';
+        etat = `dernier le ${frDate(dernier)} · ${retard ? 'dépassé depuis le' : 'prochain le'} ${frDate(prochain)}`;
+      } else {
+        etat = `dernier le ${frDate(dernier)}`;
+      }
+    }
+
+    const dit = [r.mois ? `tous les ${r.mois} mois` : null, etat].filter(Boolean).join(' — ');
+
+    return `<div class="rappel" data-t="${tone}">
+      <b>${esc(r.titre)}</b>
+      ${dit ? `<span>${esc(dit)}</span>` : ''}
+      ${r.regle ? `<i>${esc(r.regle)}</i>` : ''}
+      ${r.motCle ? `<button type="button" class="btn" data-rappel="${i}">Consigner le ${esc(spec.rowLabel)}</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function matches(spec, row) {
@@ -306,8 +323,10 @@ function bindTable(spec) {
   $('#btnAdd').addEventListener('click', () => addRow());
   const cta = el.view.querySelector('[data-addrow]');
   if (cta) cta.addEventListener('click', () => addRow());
-  const rappel = el.view.querySelector('[data-rappel]');
-  if (rappel) rappel.addEventListener('click', () => addRow({ [spec.rappel.cle]: spec.rappel.valeur }));
+  el.view.querySelectorAll('[data-rappel]').forEach((b) => {
+    const r = spec.rappels[+b.dataset.rappel];
+    b.addEventListener('click', () => addRow({ [r.cle]: r.valeur }));
+  });
 
   $('#btnCsv').addEventListener('click', () => { Store.exportCsv(spec.id); toast('Export CSV généré'); });
 }

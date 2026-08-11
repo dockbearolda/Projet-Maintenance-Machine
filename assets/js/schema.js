@@ -64,13 +64,15 @@ const TABLES = {
     // Entretien périodique propre au laser : le bandeau dit quand il retombe,
     // le bouton consigne la ligne avec le bon libellé. Faute de colonne dédiée
     // ici, c'est la colonne Remarques qui sert de repère.
-    rappel: {
-      titre: 'Nettoyage de la turbine',
-      mois: 6,
-      cle: 'obs',
-      motCle: 'turbine',
-      valeur: 'Nettoyage turbine',
-    },
+    rappels: [
+      {
+        titre: 'Nettoyage de la turbine',
+        mois: 6,
+        cle: 'obs',
+        motCle: 'turbine',
+        valeur: 'Nettoyage turbine',
+      },
+    ],
     seed: () => [],
   },
 
@@ -84,6 +86,34 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
+    // Consignes du fournisseur Sublistar. Il assume qu'il n'y a pas de règle
+    // ferme ici : les captops se jugent au nombre de Cleaning, les dampers au
+    // résultat des tests print. On date donc le dernier passage sans annoncer
+    // d'échéance qu'on aurait inventée.
+    rappels: [
+      {
+        titre: 'Captops',
+        mois: 3,
+        cle: 'piece',
+        motCle: 'captop',
+        valeur: 'Captops',
+        regle: 'ou 6 mois s’il ne faut pas enchaîner les Cleaning',
+      },
+      {
+        titre: 'Wiper',
+        mois: 6,
+        cle: 'piece',
+        motCle: 'wiper',
+        valeur: 'Wiper',
+      },
+      {
+        titre: 'Dampers',
+        cle: 'piece',
+        motCle: 'damper',
+        valeur: 'Dampers',
+        regle: 'au résultat des tests print — de 6 mois à 1 an selon l’usage',
+      },
+    ],
     seed: () => [],
   },
 
@@ -97,6 +127,23 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
+    // Consignes du fournisseur Roland. Le wiper, le feutre et la mousse ne se
+    // suivent pas au calendrier : c'est la machine qui réclame. Pas de mot-clé
+    // donc, rien à dater — la consigne elle-même est tout ce qu'il y a à dire.
+    rappels: [
+      {
+        titre: 'Captops (x2)',
+        mois: 6,
+        cle: 'piece',
+        motCle: 'captop',
+        valeur: 'Captops (x2)',
+        regle: 'conseil du constructeur',
+      },
+      {
+        titre: 'Wiper, feutre blanc, mousse rectangle',
+        regle: 'pas de calendrier — la machine alerte, cloche sur le panneau de commande',
+      },
+    ],
     seed: () => [],
   },
 };

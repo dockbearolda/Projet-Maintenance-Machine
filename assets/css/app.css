@@ -265,6 +265,9 @@ button{ font: inherit; color: inherit; }
   font-size: 14px;
 }
 .rappel span{ font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); }
+/* La consigne du constructeur : présente, jamais au premier plan — c'est
+   l'échéance qu'on doit lire d'abord, en gants, à un mètre de la tablette. */
+.rappel i{ font-style: normal; font-size: 12px; color: var(--ink-3); opacity:.8; }
 .rappel .btn{ margin-left:auto; }
 .rappel[data-t="bad"]{ background: var(--bad-bg); border-bottom-color:#e0bbb9; }
 .rappel[data-t="bad"] span{ color: var(--bad); }

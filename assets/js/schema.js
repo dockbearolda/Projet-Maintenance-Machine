@@ -100,11 +100,11 @@ const TABLES = {
         regle: 'ou 6 mois s’il ne faut pas enchaîner les Cleaning',
       },
       {
-        titre: 'Wiper',
+        titre: 'Wiper (essuyeur)',
         mois: 6,
         cle: 'piece',
-        motCle: 'wiper',
-        valeur: 'Wiper',
+        motCle: ['wiper', 'essuyeur'],
+        valeur: 'Wiper (essuyeur)',
       },
       {
         titre: 'Dampers',
@@ -127,9 +127,10 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    // Consignes du fournisseur Roland. Le wiper, le feutre et la mousse ne se
-    // suivent pas au calendrier : c'est la machine qui réclame. Pas de mot-clé
-    // donc, rien à dater — la consigne elle-même est tout ce qu'il y a à dire.
+    // Consignes du fournisseur Roland. L'essuyeur, le feutre et l'éponge ne se
+    // suivent pas au calendrier : c'est la machine qui réclame. On les groupe
+    // donc en un seul bandeau, qui date le dernier passage sans échéance. Pas
+    // de `valeur` : trois pièces, aucun libellé unique à pré-remplir.
     rappels: [
       {
         titre: 'Captops (x2)',
@@ -140,7 +141,9 @@ const TABLES = {
         regle: 'conseil du constructeur',
       },
       {
-        titre: 'Wiper, feutre blanc, mousse rectangle',
+        titre: 'Essuyeur, feutre blanc, éponge de purge',
+        cle: 'piece',
+        motCle: ['essuyeur', 'wiper', 'feutre', 'éponge', 'eponge', 'mousse'],
         regle: 'pas de calendrier — la machine alerte, cloche sur le panneau de commande',
       },
     ],

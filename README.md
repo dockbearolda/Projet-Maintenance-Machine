@@ -22,10 +22,10 @@ tableau lui-même — la dernière ligne qui mentionne la pièce — et le bouto
 |---|---|---|
 | **Trotec** | Nettoyage de la turbine | 6 mois |
 | **DTF** | Captops | 3 mois, ou 6 s'il ne faut pas enchaîner les Cleaning |
-| **DTF** | Wiper | 6 mois |
+| **DTF** | Wiper (essuyeur) | 6 mois |
 | **DTF** | Dampers | pas de règle — au résultat des tests print |
 | **Roland** | Captops (x2) | 6 mois, conseil du constructeur |
-| **Roland** | Wiper, feutre blanc, mousse rectangle | pas de calendrier — la machine alerte |
+| **Roland** | Essuyeur, feutre blanc, éponge de purge | pas de calendrier — la machine alerte |
 
 Trois régimes, parce que le constructeur ne dit pas la même chose partout :
 
@@ -38,8 +38,16 @@ Trois régimes, parce que le constructeur ne dit pas la même chose partout :
 
 Tout se déclare dans `assets/js/schema.js`, clé `rappels` du tableau concerné :
 `mois` pose l'échéance, `motCle` désigne ce qu'on cherche dans la colonne `cle`,
-`regle` porte la phrase du constructeur. Sans `mois`, pas d'échéance ; sans
-`motCle`, pas de suivi ni de bouton.
+`valeur` est le libellé que le bouton écrit, `regle` porte la phrase du
+constructeur. Sans `mois`, pas d'échéance ; sans `motCle`, pas de suivi ; sans
+`valeur`, pas de bouton.
+
+**`motCle` accepte plusieurs termes**, et il en faut : le fournisseur écrit
+« wiper » et « mousse rectangle » là où l'atelier tape « essuyeur » et « éponge
+de purge ». Avec un seul mot-clé, le bandeau resterait rouge devant une ligne
+pourtant saisie — et ferait refaire l'entretien pour rien. En ajouter un nouveau
+se fait dans le tableau `motCle`, en minuscules, accents compris (`'éponge'` ne
+capte pas `Eponge` : mettre les deux).
 
 ## Utilisation
 

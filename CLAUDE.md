@@ -2,8 +2,13 @@ TABLETTE: oui
 
 # Projet — Maintenance Atelier (Trotec / Sublistar DTF)
 
-Site statique de suivi de maintenance. **Aucune dépendance, aucun build, aucun serveur.**
-HTML + CSS + JS vanilla servis tels quels par GitHub Pages.
+Site statique de suivi de maintenance. **Aucune dépendance, aucun build, aucun serveur
+applicatif.** HTML + CSS + JS vanilla servis tels quels.
+
+Publié depuis `main` sur Railway (projet `maintenance-atelier`, service `maintenance`,
+derrière Caddy) et sur GitHub Pages en secours. `Dockerfile`, `Caddyfile` et
+`railway.json` ne servent qu'à l'hébergement : ils n'ajoutent rien au navigateur, et
+toute modification du site doit rester servable en fichiers statiques bruts.
 
 ## Contraintes du projet
 

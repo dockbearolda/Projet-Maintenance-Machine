@@ -39,6 +39,20 @@ donnée envoyée sur Internet. Conséquences pratiques :
 - **Faire une `Sauvegarde .json` une fois par mois** (bouton en bas de la barre latérale)
   sur le réseau ou une clé USB. `Restaurer` relit ce fichier.
 
+## Mise en ligne
+
+Le site est publié aux deux adresses, à partir de la même branche `main` :
+
+| Hébergeur | URL |
+|---|---|
+| Railway (principal) | https://maintenance-production-3cee.up.railway.app |
+| GitHub Pages (secours) | https://dockbearolda.github.io/Projet-Maintenance-Machine/ |
+
+Un `git push` sur `main` redéploie automatiquement les deux. Côté Railway, le
+service `maintenance` du projet `maintenance-atelier` sert les fichiers derrière
+Caddy (`Dockerfile` + `Caddyfile`) : aucune étape de build, on copie `index.html`
+et `assets/` dans l'image.
+
 ## Développement
 
 Aucune dépendance, aucune étape de build. Cinq fichiers :
@@ -50,6 +64,9 @@ assets/js/schema.js   colonnes, données d'amorçage, formules de calcul
 assets/js/store.js    persistance, sauvegarde/restauration, export CSV
 assets/js/app.js      routage, rendu des tables, fiche de ligne, tableau de bord
 ```
+
+Infrastructure : `Dockerfile`, `Caddyfile`, `railway.json`. Ces trois fichiers ne
+concernent que l'hébergement — ils n'ajoutent aucune dépendance au navigateur.
 
 Servir en local :
 

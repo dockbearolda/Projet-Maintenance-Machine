@@ -1,0 +1,32 @@
+# Service du site statique sur Railway.
+# Railway fournit le port via $PORT ; 80 en secours pour un run local.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:{$PORT:80} {
+	root * /srv
+	encode zstd gzip
+	file_server
+
+	# Application à routage par hash : toute URL inconnue retombe sur index.html.
+	try_files {path} {path}/ /index.html
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Le HTML doit être revalidé pour que les mises à jour arrivent tout de suite.
+	header /index.html Cache-Control "no-cache"
+	header /assets/* Cache-Control "public, max-age=3600"
+
+	log {
+		output stdout
+		format console
+	}
+}

@@ -21,9 +21,11 @@
 		-Server
 	}
 
-	# Le HTML doit être revalidé pour que les mises à jour arrivent tout de suite.
+	# Tout est revalidé : cinq fichiers, l'ETag renvoie un 304 quand rien n'a
+	# bougé. Un max-age sur /assets/* laissait l'atelier sur une version périmée
+	# pendant une heure après un correctif — inacceptable pour un poste unique.
 	header /index.html Cache-Control "no-cache"
-	header /assets/* Cache-Control "public, max-age=3600"
+	header /assets/* Cache-Control "no-cache"
 
 	log {
 		output stdout

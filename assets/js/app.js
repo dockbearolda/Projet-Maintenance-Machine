@@ -181,6 +181,16 @@ const frDate = (v) => {
  * passée. Sans `mois`, on se contente de dater le dernier passage : afficher
  * une échéance inventée serait pire que rien. Sans `motCle`, il n'y a rien à
  * suivre dans le tableau — la règle elle-même est tout le message.
+ *
+ * `motCle` cherche, `valeur` écrit : les deux sont indépendants. Un rappel qui
+ * couvre plusieurs pièces d'un coup date bien le dernier passage mais n'a pas
+ * de libellé unique à pré-remplir, donc pas de bouton.
+ *
+ * `motCle` accepte plusieurs termes, et il en faut : le fournisseur écrit
+ * « wiper » et « mousse rectangle » là où l'atelier tape « essuyeur » et
+ * « éponge de purge ». Un seul mot-clé et le bandeau resterait au rouge devant
+ * une ligne pourtant saisie — le pire des cas, puisqu'il ferait refaire
+ * l'entretien.
  */
 function rappelHtml(spec) {
   return (spec.rappels || []).map((r, i) => {
@@ -188,8 +198,12 @@ function rappelHtml(spec) {
     let etat = '';
 
     if (r.motCle) {
+      const termes = [].concat(r.motCle);
       const dernier = Store.rows(spec.id)
-        .filter((row) => String(row[r.cle] ?? '').toLowerCase().includes(r.motCle))
+        .filter((row) => {
+          const v = String(row[r.cle] ?? '').toLowerCase();
+          return termes.some((m) => v.includes(m));
+        })
         .map((row) => String(row.date ?? '').slice(0, 10))
         .filter(Boolean)
         .sort()
@@ -215,7 +229,7 @@ function rappelHtml(spec) {
       <b>${esc(r.titre)}</b>
       ${dit ? `<span>${esc(dit)}</span>` : ''}
       ${r.regle ? `<i>${esc(r.regle)}</i>` : ''}
-      ${r.motCle ? `<button type="button" class="btn" data-rappel="${i}">Consigner le ${esc(spec.rowLabel)}</button>` : ''}
+      ${r.valeur ? `<button type="button" class="btn" data-rappel="${i}">Consigner le ${esc(spec.rowLabel)}</button>` : ''}
     </div>`;
   }).join('');
 }

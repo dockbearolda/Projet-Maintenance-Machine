@@ -170,6 +170,20 @@ button{ font: inherit; color: inherit; }
 .saver[data-state="error"]{ color: var(--bad); font-weight:600; }
 .saver[data-state="error"] i{ background: var(--bad); }
 
+/* Témoin de partage. Il répond à une autre question que « saver » : non pas
+   « est-ce écrit ? » mais « les autres postes le voient-ils ? ». Les deux
+   cohabitent, séparés par un filet. */
+.sync{ display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:10.5px;
+  letter-spacing:.08em; text-transform:uppercase; color: var(--ink-3); white-space:nowrap;
+  padding-right:10px; margin-right:2px; border-right:1px solid var(--line); }
+.sync i{ width:7px; height:7px; border-radius:50%; background: var(--ink-3); }
+.sync[data-state="ok"] i{ background: var(--ok); }
+.sync[data-state="attente"]{ color: var(--warn); font-weight:600; }
+.sync[data-state="attente"] i{ background: var(--warn); }
+.sync[data-state="code"]{ color: var(--bad); font-weight:600; }
+.sync[data-state="code"] i{ background: var(--bad); }
+.sync[data-state="local"] i{ background: var(--line-2); }
+
 /* Le tableau occupe toute la hauteur restante : en-têtes figés en haut, seul
    le corps du tableau défile. */
 .view{
@@ -383,6 +397,15 @@ select.cell{ appearance:none; cursor:pointer;
 .alerte span{ flex:1 1 240px; font-size:13.5px; line-height:1.35; }
 .alerte .btn{ flex:0 0 auto; margin-left:auto; }
 
+/* Saisie posée dans un bandeau (code d'atelier, nom du poste) : même hauteur de
+   cible que les boutons, et 16px de police pour qu'iOS ne zoome pas au focus. */
+.alerte__champ{ flex:0 1 200px; display:flex; }
+.alerte__champ input{
+  width:100%; min-height:44px; padding:0 10px; font: inherit; font-size:16px;
+  background:#fff; color: var(--ink); border:1px solid currentColor; border-radius: var(--r);
+}
+.alerte__champ input:focus{ outline:2px solid var(--signal); outline-offset:0; }
+
 .alerte--bad{ background: var(--bad-bg); color: var(--bad); border-bottom-color:#e0bbb9; }
 .alerte--bad .btn{ background:#fff; color: var(--bad); border-color: var(--bad); }
 .alerte--warn{ background: var(--warn-bg); color: var(--warn); border-bottom-color:#e5cfa4; }
@@ -463,8 +486,13 @@ table.grid--lecture{ table-layout: fixed; min-width: 100%; }
      seule mention qui ne doit jamais passer inaperçue. */
   .saver span{ display:none; }
   .saver[data-state="error"] span{ display:inline; }
+  /* Même règle pour le partage : la pastille suffit tant que tout va bien,
+     le mot revient dès qu'il y a quelque chose à comprendre. */
+  .sync span{ display:none; }
+  .sync:not([data-state="ok"]) span{ display:inline; }
   .alerte{ padding: 10px 12px; gap:8px; }
   .alerte .btn{ margin-left:0; flex:1 0 100%; }
+  .alerte__champ{ flex:1 0 100%; }
   .trashline{ padding: 12px; }
   .trashline .btn{ flex:1 0 100%; }
   .topbar__tools{

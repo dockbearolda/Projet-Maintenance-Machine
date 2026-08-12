@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "maintenance",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4173"],
-      "port": 4173
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 8080
     }
   ]
 }

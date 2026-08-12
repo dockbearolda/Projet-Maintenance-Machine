@@ -80,12 +80,15 @@ function setCrumb(machine, view) {
 
 /* --------------------------------------------------------------- TABLE --- */
 
-function cellHtml(col, row, i) {
+/* Une cellule se désigne par l'identifiant de sa ligne, jamais par son rang :
+   sur un tableau partagé, l'ajout d'un collègue décale les indices de ce poste
+   entre le moment où la case est peinte et celui où elle est remplie. */
+function cellHtml(col, row) {
   const v = row[col.key] ?? '';
   const isDate = col.type === 'date' || col.type === 'datetime';
   const cls = 'cell' + (col.type === 'num' ? ' cell--num' : '')
     + (isDate ? ' cell--date' + (v ? '' : ' is-empty') : '');
-  const at = `data-k="${esc(col.key)}" data-i="${i}"`;
+  const at = `data-k="${esc(col.key)}" data-id="${esc(row._id)}"`;
 
   switch (col.type) {
     case 'select':
@@ -109,11 +112,11 @@ function rowHtml(spec, row, i) {
     const cls = [c.stick ? 'stick' : '', isLastStick ? 'stick--last' : ''].filter(Boolean).join(' ');
     const style = c.stick ? ` style="left:${left}px"` : '';
     if (c.stick) left += c.w;
-    return `<td class="${cls}"${style}>${cellHtml(c, row, i)}</td>`;
+    return `<td class="${cls}"${style}>${cellHtml(c, row)}</td>`;
   }).join('');
-  return `<tr data-i="${i}">
+  return `<tr data-id="${esc(row._id)}">
     <td class="stick" style="left:0">
-      <button type="button" class="rowbtn" data-edit="${i}" title="Ouvrir la fiche">${i + 1}</button>
+      <button type="button" class="rowbtn" data-edit="${esc(row._id)}" title="Ouvrir la fiche">${i + 1}</button>
     </td>${tds}</tr>`;
 }
 
@@ -273,11 +276,22 @@ function renderTable(spec) {
       </div>
       <div class="panel__foot">
         <span>${visible.length} / ${rows.length} ligne${rows.length > 1 ? 's' : ''}</span>
-        <span class="foot-note">Enregistrement automatique dans ce navigateur</span>
+        <span class="foot-note">${esc(noteEnregistrement())}</span>
       </div>
     </section>`);
 
   bindTable(spec);
+}
+
+/** Le pied de tableau dit où part ce qui est tapé. Il ne doit jamais promettre
+    un partage qui n'a pas lieu : c'est le mode réel qui parle. */
+function noteEnregistrement() {
+  switch (Sync.mode()) {
+    case 'partage': return 'Partagé — visible sur tous les postes de l’atelier';
+    case 'attente': return 'Hors ligne — enregistré ici, envoyé au retour du réseau';
+    case 'code':    return 'Partage en attente du code d’atelier';
+    default:        return 'Enregistrement automatique dans ce navigateur';
+  }
 }
 
 /* --------------------------------------------------------- INTERACTION --- */
@@ -288,7 +302,7 @@ function bindTable(spec) {
   const write = (e) => {
     const t = e.target;
     if (!t.dataset || !t.dataset.k) return;
-    Store.set(spec.id, +t.dataset.i, t.dataset.k, t.value);
+    Store.set(spec.id, t.dataset.id, t.dataset.k, t.value);
     if (t.tagName === 'INPUT' && t.type === 'text') t.title = t.value;
     if (t.classList.contains('cell--date')) t.classList.toggle('is-empty', !t.value);
   };
@@ -297,7 +311,7 @@ function bindTable(spec) {
 
   tb.addEventListener('click', (e) => {
     const edit = e.target.closest('[data-edit]');
-    if (edit) openRow(spec, +edit.dataset.edit);
+    if (edit) openRow(spec, edit.dataset.edit);
   });
 
   // Entrée / flèches : on descend d'une ligne dans la même colonne, comme dans
@@ -321,14 +335,12 @@ function bindTable(spec) {
   // enchaîne la saisie sans toucher la souris.
   const addRow = (prerempli) => {
     const row = Object.assign(spec.addRow ? spec.addRow() : {}, prerempli || {});
-    let i;
-    if (spec.prepend) { Store.insert(spec.id, 0, row); i = 0; }
-    else i = Store.add(spec.id, row);
+    const r = Store.add(spec.id, row, !!spec.prepend);
     filter = '';
     renderTable(spec);
     // La première ligne d'un poste neuf fait apparaître le rappel de sauvegarde.
     renderAlertes();
-    const tr = $(`#tb tr[data-i="${i}"]`);
+    const tr = $(`#tb tr[data-id="${CSS.escape(r._id)}"]`);
     if (!tr) return;
     const cells = [...tr.querySelectorAll('[data-k]')];
     const target = cells.find((c) => !c.value) || cells[0];
@@ -450,8 +462,9 @@ function renderCorbeille(spec) {
 
   const q = filter.toLowerCase();
   const total = Store.trash().length;
-  // L'indice d'origine voyage avec la ligne : c'est lui que untrash() attend.
-  const items = Store.trash().map((t, i) => [t, i]).reverse().filter(([t]) =>
+  // La ligne se remet en place par son identifiant : la corbeille est partagée,
+  // son rang change dès qu'un autre poste y dépose ou en reprend une ligne.
+  const items = Store.trash().slice().reverse().filter((t) =>
     !q || (nomEcran(t.table) + ' ' + Store.libelle(t.table, t.row)).toLowerCase().includes(q));
 
   paint(el.view, `
@@ -461,13 +474,13 @@ function renderCorbeille(spec) {
         <p>${esc(spec.subtitle)}</p>
       </div>
       <div class="tablewrap">
-        ${items.length ? `<ul class="trash">${items.map(([t, i]) => `
+        ${items.length ? `<ul class="trash">${items.map((t) => `
           <li class="trashline">
             <div class="trashline__id">
               <b>${esc(Store.libelle(t.table, t.row))}</b>
               <span>${esc(nomEcran(t.table))} · retirée le ${esc(quand(t.at))}${t.poste ? ' · ' + esc(t.poste) : ''}</span>
             </div>
-            <button type="button" class="btn btn--signal" data-untrash="${i}">Remettre en place</button>
+            <button type="button" class="btn btn--signal" data-untrash="${esc(t.row._id)}">Remettre en place</button>
           </li>`).join('')}</ul>`
         : `<div class="empty"><strong>Corbeille vide</strong>
             ${total ? 'Aucun résultat pour cette recherche.' : 'Aucune ligne n’a été retirée d’un tableau.'}</div>`}
@@ -484,7 +497,7 @@ function renderCorbeille(spec) {
   if (liste) liste.addEventListener('click', (e) => {
     const b = e.target.closest('[data-untrash]');
     if (!b) return;
-    const t = Store.untrash(+b.dataset.untrash);
+    const t = Store.untrash(b.dataset.untrash);
     render();
     if (t) toast('Ligne remise dans « ' + nomEcran(t.table) + ' »');
   });
@@ -493,13 +506,16 @@ function renderCorbeille(spec) {
 /* ============================== ALERTES ================================== */
 
 /**
- * Deux choses doivent se voir sans qu'on aille les chercher : l'écriture qui
- * échoue — ce qui est tapé n'est plus conservé — et la sauvegarde qui date.
- * Le bandeau reste tant que la cause dure ; ce n'est pas un toast.
+ * Ce qui doit se voir sans qu'on aille le chercher : l'écriture qui échoue — ce
+ * qui est tapé n'est plus conservé —, le partage qui ne prend pas, et la
+ * sauvegarde qui date. Le bandeau reste tant que la cause dure ; ce n'est pas
+ * un toast.
  */
 function renderAlertes() {
   const parts = [];
   const err = Store.erreur();
+  const mode = Sync.mode();
+  const partage = Sync.actif();
 
   if (err) {
     parts.push(`<div class="alerte alerte--bad" role="alert">
@@ -510,14 +526,55 @@ function renderAlertes() {
     </div>`);
   }
 
+  if (mode === 'code') {
+    parts.push(`<div class="alerte alerte--warn" role="alert">
+      <b>Code d’atelier</b>
+      <span>Ce poste n’est pas encore relié au tableau partagé. Saisis le code de l’atelier :
+        il est demandé une seule fois par navigateur.</span>
+      <label class="alerte__champ"><input type="password" id="codeAtelier" autocomplete="off"
+        aria-label="Code d’atelier" placeholder="Code" enterkeyhint="go"></label>
+      <button type="button" class="btn" data-code-ok>Relier ce poste</button>
+    </div>`);
+  }
+
+  if (mode === 'attente') {
+    const n = Sync.enAttente();
+    parts.push(`<div class="alerte alerte--warn">
+      <b>Serveur injoignable</b>
+      <span>La saisie continue normalement et reste enregistrée ici.
+        ${n ? `${n} écriture${n > 1 ? 's' : ''} en attente — elle${n > 1 ? 's repartiront' : ' repartira'}` : 'Tout repartira'}
+        dès le retour du réseau.</span>
+      <button type="button" class="btn" data-resync>Réessayer</button>
+    </div>`);
+  }
+
+  /* Le journal partagé porte une colonne « Poste ». Sans nom, toutes les
+     écritures de l'atelier se ressemblent — autant le demander une fois. */
+  if (mode === 'partage' && !Store.poste()) {
+    parts.push(`<div class="alerte alerte--warn">
+      <b>Nom du poste</b>
+      <span>Donne un nom à ce navigateur (« tablette atelier », « PC bureau »…) :
+        l’historique partagé dira qui a écrit quoi.</span>
+      <label class="alerte__champ"><input type="text" id="nomPoste" autocomplete="off"
+        aria-label="Nom du poste" placeholder="tablette atelier" maxlength="24" enterkeyhint="go"></label>
+      <button type="button" class="btn" data-poste-ok>Enregistrer</button>
+    </div>`);
+  }
+
+  // Le serveur garde une copie datée par jour : le rappel se fait plus discret
+  // quand le partage tourne, sans disparaître — le .json reste le seul filet
+  // qui ne dépend d'aucun serveur.
   const j = Store.backupAge();
-  if (!err && Store.compte() && (j === null || j >= 7)) {
+  const seuil = partage ? 30 : 7;
+  if (!err && Store.compte() && (j === null || j >= seuil)) {
     parts.push(`<div class="alerte alerte--warn">
       <b>Sauvegarde</b>
       <span>${j === null
         ? 'Aucune sauvegarde .json depuis ce poste.'
         : `Dernière sauvegarde il y a ${j} jour${j > 1 ? 's' : ''}.`}
-        Les données ne vivent que dans ce navigateur.</span>
+        ${partage
+          ? 'Les données sont partagées et copiées chaque jour côté serveur ; le .json reste le filet qui ne dépend de rien.'
+          : 'Les données ne vivent que dans ce navigateur.'}</span>
       <button type="button" class="btn" data-backup>Sauvegarde .json</button>
     </div>`);
   }
@@ -525,30 +582,102 @@ function renderAlertes() {
   paint(el.alertes, parts.join(''));
 }
 
+/* ------------------------------------------------------------- PARTAGE --- */
+
+/** Ce que le rail de la barre du haut affiche selon l'état du partage. */
+const ETATS_SYNC = {
+  local:   { t: 'local',   texte: 'Ce poste' },
+  code:    { t: 'code',    texte: 'Code requis' },
+  partage: { t: 'ok',      texte: 'Partagé' },
+  attente: { t: 'attente', texte: 'Hors ligne' },
+};
+
+function renderSync(mode, info) {
+  const box = $('#sync');
+  const etat = ETATS_SYNC[mode];
+  // Tant que la sonde cherche, on n'annonce rien : un « Ce poste » qui bascule
+  // sur « Partagé » une demi-seconde plus tard se lit comme une panne.
+  box.hidden = !etat;
+  if (!etat) return;
+  box.dataset.state = etat.t;
+  box.querySelector('span').textContent =
+    mode === 'attente' && info.enAttente ? `${etat.texte} · ${info.enAttente}` : etat.texte;
+  box.title = mode === 'partage'
+    ? 'Les lignes sont les mêmes sur tous les postes de l’atelier.'
+    : mode === 'attente'
+      ? 'Serveur injoignable. La saisie est conservée ici et repartira au retour du réseau.'
+      : mode === 'code'
+        ? 'Code d’atelier requis pour rejoindre le tableau partagé.'
+        : 'Aucun serveur de partage à cette adresse : les données restent sur ce poste.';
+}
+
+/**
+ * L'état des autres postes vient d'arriver : on repeint. Le curseur et la
+ * sélection sont remis là où ils étaient — l'opérateur ne doit pas sentir la
+ * synchronisation pendant qu'il tape.
+ */
+function rafraichir() {
+  if (ficheOuverte && !Store.row(ficheOuverte.table, ficheOuverte.row)) {
+    closeModal();
+    toast('Cette ligne vient d’être retirée depuis un autre poste');
+    return;
+  }
+  const memo = focusMemo();
+  render();
+  majFiche();
+  focusRestaure(memo);
+}
+
+function focusMemo() {
+  const a = document.activeElement;
+  if (!a || !a.dataset || !a.dataset.k || !a.dataset.id) return null;
+  const memo = { id: a.dataset.id, k: a.dataset.k, modale: !el.modal.hidden };
+  // Les champs date/heure n'exposent pas de sélection : on ignore, sans bruit.
+  try { memo.debut = a.selectionStart; memo.fin = a.selectionEnd; } catch (_) { /* type=date */ }
+  return memo;
+}
+
+function focusRestaure(memo) {
+  if (!memo) return;
+  const racine = memo.modale ? el.modal : el.view;
+  const cible = racine.querySelector(`[data-id="${CSS.escape(memo.id)}"][data-k="${CSS.escape(memo.k)}"]`);
+  if (!cible) return;
+  cible.focus();
+  if (memo.debut == null) return;
+  try { cible.setSelectionRange(memo.debut, memo.fin); } catch (_) { /* type=date */ }
+}
+
 /* ------------------------------------------------------ FICHE DE LIGNE --- */
 
 /* Le tableau suffit pour saisir. La fiche sert à voir une ligne en entier sur
    un petit écran, et c'est le seul endroit d'où l'on retire une ligne — vers la
    corbeille, jamais dans le vide. */
-function openRow(spec, i) {
-  const row = Store.rows(spec.id)[i];
+/** La ligne dont la fiche est ouverte, pour la suivre quand l'état du serveur
+    arrive : ses champs se rafraîchissent, et elle se ferme si un autre poste
+    vient de mettre cette ligne à la corbeille. */
+let ficheOuverte = null;
+
+function openRow(spec, rowId) {
+  const row = Store.row(spec.id, rowId);
   if (!row) return;
+  ficheOuverte = { table: spec.id, row: rowId };
+  const rang = Store.rows(spec.id).indexOf(row) + 1;
 
   const field = (c) => {
     const v = esc(row[c.key] ?? '');
     const id = 'f_' + c.key;
-    const k = esc(c.key);
+    const at = `data-k="${esc(c.key)}" data-id="${esc(rowId)}"`;
     let input;
     switch (c.type) {
       case 'select':
-        input = `<select id="${id}" data-k="${k}"><option value=""></option>${c.options.map((o) =>
+        input = `<select id="${id}" ${at}><option value=""></option>${c.options.map((o) =>
           `<option${o === row[c.key] ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
         break;
-      case 'long': input = `<textarea id="${id}" data-k="${k}">${v}</textarea>`; break;
-      case 'date': input = `<input type="date" id="${id}" data-k="${k}" value="${v}">`; break;
-      case 'datetime': input = `<input type="datetime-local" id="${id}" data-k="${k}" value="${v}">`; break;
-      case 'num':  input = `<input type="text" inputmode="decimal" id="${id}" data-k="${k}" value="${v}">`; break;
-      default:     input = `<input type="text" id="${id}" data-k="${k}" value="${v}">`;
+      case 'long': input = `<textarea id="${id}" ${at}>${v}</textarea>`; break;
+      case 'date': input = `<input type="date" id="${id}" ${at} value="${v}">`; break;
+      case 'datetime': input = `<input type="datetime-local" id="${id}" ${at} value="${v}">`; break;
+      case 'num':  input = `<input type="text" inputmode="decimal" id="${id}" ${at} value="${v}">`; break;
+      default:     input = `<input type="text" id="${id}" ${at} value="${v}">`;
     }
     return `<div class="field"><label for="${id}">${esc(c.label)}</label>${input}</div>`;
   };
@@ -557,7 +686,7 @@ function openRow(spec, i) {
   paint(el.modal, `
     <div class="modal__box" role="dialog" aria-modal="true" aria-label="Fiche ${esc(spec.rowLabel)}">
       <div class="modal__head">
-        <h2>${esc(spec.rowLabel)} n°${i + 1}</h2>
+        <h2>${esc(spec.rowLabel)} n°${rang}</h2>
         <button type="button" class="btn btn--icon" style="margin-left:auto" data-close>Fermer</button>
       </div>
       <div class="modal__body" id="mbody">
@@ -571,16 +700,17 @@ function openRow(spec, i) {
 
   const sync = (e) => {
     const t = e.target;
-    if (t.dataset && t.dataset.k) Store.set(spec.id, i, t.dataset.k, t.value);
+    if (t.dataset && t.dataset.k) Store.set(spec.id, rowId, t.dataset.k, t.value);
   };
   $('#mbody').addEventListener('input', sync);
   $('#mbody').addEventListener('change', sync);
 
   el.modal.onclick = (e) => {
     if (e.target.closest('[data-del]')) {
-      if (confirm(`Retirer la ligne n°${i + 1} du tableau ?\n\n`
-        + 'Elle part à la corbeille : elle reste dans le fichier et se remet en place quand tu veux.')) {
-        Store.remove(spec.id, i);
+      if (confirm(`Retirer la ligne n°${rang} du tableau ?\n\n`
+        + 'Elle part à la corbeille : elle reste dans le fichier et se remet en place quand tu veux.'
+        + (Sync.actif() ? '\n\nLe retrait vaut pour tous les postes de l’atelier.' : ''))) {
+        Store.remove(spec.id, rowId);
         closeModal();
         toast('Ligne mise à la corbeille');
       }
@@ -590,9 +720,23 @@ function openRow(spec, i) {
   };
 }
 
+/** Un autre poste a modifié la ligne ouverte : les champs suivent, sauf celui
+    qui a le curseur — on n'efface pas ce qui est en train d'être tapé. */
+function majFiche() {
+  if (el.modal.hidden || !ficheOuverte) return;
+  const row = Store.row(ficheOuverte.table, ficheOuverte.row);
+  if (!row) return;
+  el.modal.querySelectorAll('[data-k]').forEach((f) => {
+    if (f === document.activeElement) return;
+    const v = String(row[f.dataset.k] ?? '');
+    if (f.value !== v) f.value = v;
+  });
+}
+
 function closeModal() {
   el.modal.hidden = true;
   el.modal.onclick = null;
+  ficheOuverte = null;
   paint(el.modal, '');
   render();
 }
@@ -634,14 +778,39 @@ function sauvegarde() {
   renderAlertes();
 }
 
+/** Le code d'atelier est demandé une fois par navigateur, puis mémorisé. */
+async function relie() {
+  const champ = $('#codeAtelier');
+  const bouton = el.alertes.querySelector('[data-code-ok]');
+  if (!champ || !champ.value.trim()) { if (champ) champ.focus(); return; }
+  if (bouton) { bouton.disabled = true; bouton.textContent = 'Vérification…'; }
+  const ok = await Sync.essaieCode(champ.value);
+  renderAlertes();
+  toast(ok ? 'Poste relié au tableau partagé' : 'Code refusé — réessaie');
+  if (ok) rafraichir(); else { const c = $('#codeAtelier'); if (c) c.focus(); }
+}
+
+function nommePoste() {
+  const champ = $('#nomPoste');
+  if (!champ || !champ.value.trim()) { if (champ) champ.focus(); return; }
+  Store.setPoste(champ.value);
+  renderAlertes();
+  toast('Poste nommé « ' + Store.poste() + ' »');
+}
+
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-print]')) { window.print(); return; }
   if (e.target.closest('[data-backup]')) { sauvegarde(); return; }
+  if (e.target.closest('[data-resync]')) { Sync.maintenant(); toast('Nouvelle tentative…'); return; }
+  if (e.target.closest('[data-code-ok]')) { relie(); return; }
+  if (e.target.closest('[data-poste-ok]')) { nommePoste(); return; }
   const g = e.target.closest('[data-go]');
   if (g) go(g.dataset.go);
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'codeAtelier') { e.preventDefault(); relie(); return; }
+  if (e.key === 'Enter' && e.target.id === 'nomPoste') { e.preventDefault(); nommePoste(); return; }
   if (e.key !== 'Escape') return;
   if (!el.modal.hidden) closeModal();
   else if (document.body.classList.contains('nav-open')) toggleNav(false);
@@ -657,7 +826,13 @@ $('#fileRestore').addEventListener('change', async (e) => {
   if (!f) return;
   if (!confirm('Les tableaux vont être remplacés par le contenu de ce fichier.\n\n'
     + 'L’historique et la corbeille sont fusionnés, pas remplacés.\n'
-    + 'Une sauvegarde de l’état actuel va d’abord être téléchargée.\n\nContinuer ?')) {
+    + 'Une sauvegarde de l’état actuel va d’abord être téléchargée.\n'
+    + (Sync.actif()
+      ? 'Partage : les lignes du fichier que le serveur ignore lui seront renvoyées.\n'
+        + 'Les lignes qu’il connaît déjà gardent leur valeur — remonter une vieille\n'
+        + 'sauvegarde ne fait pas reculer le travail des autres postes.\n'
+      : '')
+    + '\nContinuer ?')) {
     e.target.value = '';
     return;
   }
@@ -667,6 +842,9 @@ $('#fileRestore').addEventListener('change', async (e) => {
   try {
     const bilan = await Store.restore(f);
     render();
+    // Le serveur ne connaît pas les lignes que le fichier vient de remettre :
+    // on relance un échange complet pour les lui pousser.
+    Sync.reconcilie();
     toast(`Restauré · ${bilan.lignes} ligne(s), ${bilan.journal} entrée(s) d’historique reprises`);
   } catch (err) {
     alert('Restauration impossible : ' + err.message
@@ -675,8 +853,42 @@ $('#fileRestore').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
+/* --------------------------------------------------------- DÉMARRAGE ----- */
+
+/* Le champ sous le curseur ne se fait pas écraser par l'état venu du serveur :
+   sans ça, la saisie s'effacerait sous les doigts au moment où la réponse
+   arrive. Le store lui demande la ligne et le champ, jamais le rang. */
+Store.protege(() => {
+  const a = document.activeElement;
+  if (!a || !a.dataset || !a.dataset.k || !a.dataset.id) return null;
+  if (!TABLES[current]) return null;
+  return { table: current, row: a.dataset.id, champ: a.dataset.k };
+});
+
+let syncMode = null;
+let syncMajs = -1;
+let syncAttente = -1;
+Sync.onState((mode, info) => {
+  renderSync(mode, info);
+  const donneesNeuves = info.majs !== syncMajs;
+  const modeChange = mode !== syncMode;
+  // Hors ligne, le bandeau annonce combien d'écritures patientent : le nombre
+  // doit suivre la frappe, sinon il dit « 1 » devant une pile de trois.
+  const fileChange = mode === 'attente' && info.enAttente !== syncAttente;
+  syncMajs = info.majs;
+  syncMode = mode;
+  syncAttente = info.enAttente;
+  // Le mode se lit jusque dans le pied du tableau : un changement d'état vaut
+  // un repeint, même sans donnée neuve.
+  if (donneesNeuves || modeChange) rafraichir();
+  else if (fileChange) renderAlertes();
+});
+
 window.addEventListener('hashchange', route);
 route();
+// La sonde décide seule : serveur de partage à cette adresse, ou repli sur le
+// stockage du poste. L'appli est déjà utilisable avant sa réponse.
+Sync.init();
 // Demande au navigateur de ne pas vider ce stockage quand la place manque.
 // Plus rien n'affiche la réponse, mais la demande, elle, protège les données.
 Store.durabilite();

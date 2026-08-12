@@ -46,6 +46,10 @@
       <span class="topbar__view" id="crumbView">—</span>
     </div>
     <div class="topbar__tools" id="tools"></div>
+    <!-- Deux témoins distincts : « saver » dit si c'est écrit sur ce poste,
+         « sync » si les autres postes le voient. Confondre les deux ferait
+         croire à un partage là où il n'y a qu'un enregistrement local. -->
+    <div class="sync" id="sync" aria-live="polite" hidden><i></i><span></span></div>
     <div class="saver" id="saver" aria-live="polite"><i></i><span>Enregistré</span></div>
   </header>
   <div class="alertes" id="alertes" aria-live="polite"></div>
@@ -57,6 +61,7 @@
 
 <script src="assets/js/schema.js"></script>
 <script src="assets/js/store.js"></script>
+<script src="assets/js/sync.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

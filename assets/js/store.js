@@ -1,7 +1,12 @@
 /* =========================================================================
    STORE — persistance locale, journal des écritures, corbeille,
    sauvegarde/restauration, export CSV.
-   Aucune dépendance, aucun serveur : tout vit dans le navigateur du poste.
+
+   Le stockage du navigateur reste la source d'affichage : tout se lit et
+   s'écrit là, instantanément, même serveur coupé. Quand un serveur de partage
+   répond (voir sync.js), chaque écriture part aussi sous forme de *mutation* et
+   l'état des autres postes revient par `applyRemote()`. Sans serveur, rien de
+   tout ça ne s'active et l'appli fonctionne exactement comme avant.
 
    Règle de la maison : rien ne disparaît. Une valeur écrasée laisse son
    ancienne version au journal, une ligne retirée part à la corbeille, un
@@ -25,6 +30,11 @@ const Store = (() => {
   let erreur = null;
   let durable = null;
   const listeners = [];
+  /** Abonnés aux mutations : sync.js, quand il y a un serveur. Personne sinon. */
+  const sortants = [];
+  /** Le champ que l'opérateur est en train de remplir, si l'écran en désigne
+      un. L'état venu du serveur ne l'écrase pas — voir applyRemote(). */
+  let champProtege = () => null;
 
   const emit = (s) => listeners.forEach((fn) => fn(s));
   const maintenant = () => new Date().toISOString();
@@ -41,7 +51,8 @@ const Store = (() => {
   /**
    * Toute ligne porte un identifiant. Sans lui le journal ne saurait pas de
    * quelle ligne il parle : les tableaux insèrent en tête, l'indice d'une ligne
-   * change dès l'ajout suivant.
+   * change dès l'ajout suivant. C'est aussi lui qui désigne la ligne d'un poste
+   * à l'autre — deux navigateurs n'ont aucune raison de compter pareil.
    */
   function normalise(rows) {
     for (const r of rows) if (r && !r._id) r._id = uid();
@@ -115,8 +126,20 @@ const Store = (() => {
   /* ---------------------------------------------------------- journal ----- */
 
   function note(e) {
-    data.journal.push(Object.assign({ t: maintenant(), poste: api.poste() }, e));
+    const entree = Object.assign({ t: maintenant(), poste: api.poste() }, e);
+    data.journal.push(entree);
+    return entree;
   }
+
+  /** Une écriture part vers le serveur, s'il y en a un. Sinon personne n'écoute
+      et l'appel ne coûte rien. */
+  const emet = (m) => sortants.forEach((fn) => fn(m));
+
+  const valeursDe = (row) => {
+    const v = {};
+    for (const k of Object.keys(row)) if (k !== '_id') v[k] = row[k];
+    return v;
+  };
 
   /**
    * Étiquette courte d'une ligne, figée dans l'entrée de journal : elle doit
@@ -138,21 +161,26 @@ const Store = (() => {
    * Une frappe par caractère ferait sept entrées pour « turbine ». Tant qu'on
    * reste dans le même champ de la même ligne, on prolonge l'entrée en cours :
    * le « avant » d'origine est conservé, seul le « après » suit la frappe.
+   *
+   * Renvoie une copie de l'entrée, y compris quand celle-ci vient d'être
+   * retirée : l'appelant doit pouvoir dire au serveur que la valeur est revenue
+   * à son point de départ.
    */
   function noteModif(id, row, key, avant, apres) {
     const last = data.journal[data.journal.length - 1];
     const suite = last && last.op === 'modif' && last.table === id
-      && last.row === row._id && last.champ === key
+      && last.row === row._id && last.champ === key && last.mid
       && Date.now() - Date.parse(last.t) < COALESCE_MS;
 
     if (suite) {
       last.apres = apres;
       last.t = maintenant();
       last.resume = libelle(id, row);
+      const copie = Object.assign({}, last);
       if (last.avant === last.apres) data.journal.pop(); // revenu au point de départ
-      return;
+      return copie;
     }
-    note({ op: 'modif', table: id, row: row._id, champ: key, avant, apres, resume: libelle(id, row) });
+    return note({ mid: uid(), op: 'modif', table: id, row: row._id, champ: key, avant, apres, resume: libelle(id, row) });
   }
 
   /* ------------------------------------------------------- persistance ---- */
@@ -212,20 +240,33 @@ const Store = (() => {
 
   /* -------------------------------------------------------- fusion -------- */
 
-  const cleEntree = (e) => [e.t, e.op, e.table, e.row, e.champ, e.apres].join('|');
+  /* Le `mid` identifie une écriture d'un bout à l'autre de la chaîne : il suit
+     la même entrée du navigateur au serveur puis aux autres postes. Les entrées
+     d'avant le partage n'en ont pas — on retombe alors sur leur contenu. */
+  const cleEntree = (e) => e.mid || [e.t, e.op, e.table, e.row, e.champ, e.apres].join('|');
 
   /**
-   * Le journal est fusionné, jamais remplacé : restaurer une sauvegarde ne doit
-   * pas effacer ce que ce poste a consigné entre-temps. Les entrées sont
-   * horodatées, l'ordre se refait tout seul.
+   * Le journal est fusionné, jamais remplacé : restaurer une sauvegarde ou
+   * recevoir l'état du serveur ne doit pas effacer ce que ce poste a consigné
+   * entre-temps. Les entrées sont horodatées, l'ordre se refait tout seul.
    */
   function fusionneJournal(entrees) {
     if (!Array.isArray(entrees)) return 0;
-    const vus = new Set(data.journal.map(cleEntree));
+    const vus = new Map();
+    data.journal.forEach((e, i) => vus.set(cleEntree(e), i));
     let n = 0;
     for (const e of entrees) {
-      if (!e || typeof e !== 'object' || vus.has(cleEntree(e))) continue;
-      vus.add(cleEntree(e));
+      if (!e || typeof e !== 'object') continue;
+      const cle = cleEntree(e);
+      const connu = vus.get(cle);
+      if (connu !== undefined) {
+        // Même écriture des deux côtés : la version la plus récente gagne. Une
+        // frappe en cours ici est plus à jour que ce que le serveur a reçu.
+        const place = data.journal[connu];
+        if (String(e.t) > String(place.t)) data.journal[connu] = e;
+        continue;
+      }
+      vus.set(cle, data.journal.length);
       data.journal.push(e);
       n++;
     }
@@ -248,13 +289,32 @@ const Store = (() => {
     return n;
   }
 
+  /* ------------------------------------------------------ lignes ---------- */
+
+  const indexDe = (id, rowId) => api.rows(id).findIndex((r) => r && r._id === rowId);
+  const indexCorbeille = (rowId) => data.trash.findIndex((t) => t && t.row && t.row._id === rowId);
+
+  /** Toutes les lignes connues du poste, tableaux et corbeille confondus. */
+  function toutesLesLignes() {
+    const out = [];
+    for (const id of Object.keys(data.tables)) {
+      for (const r of data.tables[id]) if (r && r._id) out.push({ table: id, row: r });
+    }
+    return out;
+  }
+
   /* ------------------------------------------------------------- API ------ */
 
   const api = {
     init() { load(); return api; },
     onState(fn) { listeners.push(fn); },
+    /** sync.js s'abonne ici pour envoyer les écritures au serveur. */
+    onMutation(fn) { sortants.push(fn); },
+    /** L'écran déclare le champ en cours de frappe : le serveur ne l'écrase pas. */
+    protege(fn) { champProtege = fn || (() => null); },
     all() { return data; },
     rows(id) { return data.tables[id] || (data.tables[id] = []); },
+    row(id, rowId) { return api.rows(id).find((r) => r && r._id === rowId) || null; },
     compte,
     durabilite,
     durable() { return durable; },
@@ -270,53 +330,60 @@ const Store = (() => {
       try { localStorage.setItem(KEY_POSTE, String(v || '').slice(0, 24)); } catch (_) { /* stockage bloqué */ }
     },
 
-    set(id, index, key, value) {
-      const r = api.rows(id)[index];
+    /* Les lignes se désignent par leur identifiant, jamais par leur rang : sur
+       un tableau partagé, l'ajout d'un collègue décale les indices d'un poste
+       sans prévenir l'autre. */
+
+    set(id, rowId, key, value) {
+      const r = api.row(id, rowId);
       if (!r) return;
       const avant = String(r[key] ?? '');
       if (avant === String(value)) return;
-      r[key] = value;
-      noteModif(id, r, key, avant, String(value));
+      r[key] = String(value);
+      const e = noteModif(id, r, key, avant, String(value));
+      emet({
+        mid: e.mid, op: 'modif', table: id, row: r._id, champ: key,
+        avant: e.avant, apres: e.apres, t: e.t, poste: e.poste, resume: e.resume,
+      });
       touch();
     },
 
-    add(id, row) {
+    /** `prepend` place la ligne en tête, comme le demande le schéma du tableau. */
+    add(id, row, prepend) {
       const r = Object.assign({ _id: uid() }, row || {});
-      api.rows(id).push(r);
-      note({ op: 'ajout', table: id, row: r._id, resume: libelle(id, r) });
+      if (prepend) api.rows(id).unshift(r); else api.rows(id).push(r);
+      const e = note({ mid: uid(), op: 'ajout', table: id, row: r._id, resume: libelle(id, r) });
+      emet({
+        mid: e.mid, op: 'ajout', table: id, row: r._id, valeurs: valeursDe(r),
+        prepend: !!prepend, t: e.t, poste: e.poste, resume: e.resume,
+      });
       flush();
-      return api.rows(id).length - 1;
-    },
-
-    insert(id, index, row) {
-      const r = Object.assign({ _id: uid() }, row || {});
-      api.rows(id).splice(index, 0, r);
-      note({ op: 'ajout', table: id, row: r._id, resume: libelle(id, r) });
-      flush();
-      return index;
+      return r;
     },
 
     /** La ligne quitte le tableau mais reste dans le fichier : elle part à la
         corbeille, d'où elle se remet en place. Aucune suppression sèche. */
-    remove(id, index) {
-      const [row] = api.rows(id).splice(index, 1);
-      if (row) {
-        data.trash.push({ table: id, row, at: maintenant(), poste: api.poste() });
-        note({ op: 'corbeille', table: id, row: row._id, resume: libelle(id, row) });
-      }
+    remove(id, rowId) {
+      const i = indexDe(id, rowId);
+      if (i < 0) return null;
+      const [row] = api.rows(id).splice(i, 1);
+      const e = note({ mid: uid(), op: 'corbeille', table: id, row: row._id, resume: libelle(id, row) });
+      data.trash.push({ table: id, row, at: e.t, poste: e.poste });
+      emet({ mid: e.mid, op: 'corbeille', table: id, row: row._id, t: e.t, poste: e.poste, resume: e.resume });
       flush();
       return row;
     },
 
     /** Remet une ligne de la corbeille dans son tableau d'origine. */
-    untrash(index) {
-      const t = data.trash[index];
-      if (!t || !t.row) return null;
-      data.trash.splice(index, 1);
+    untrash(rowId) {
+      const i = indexCorbeille(rowId);
+      if (i < 0) return null;
+      const [t] = data.trash.splice(i, 1);
       const spec = TABLES[t.table];
-      if (spec && spec.prepend) api.rows(t.table).unshift(t.row);
-      else api.rows(t.table).push(t.row);
-      note({ op: 'restauration', table: t.table, row: t.row._id, resume: libelle(t.table, t.row) });
+      const prepend = !!(spec && spec.prepend);
+      if (prepend) api.rows(t.table).unshift(t.row); else api.rows(t.table).push(t.row);
+      const e = note({ mid: uid(), op: 'restauration', table: t.table, row: t.row._id, resume: libelle(t.table, t.row) });
+      emet({ mid: e.mid, op: 'restauration', table: t.table, row: t.row._id, prepend, t: e.t, poste: e.poste, resume: e.resume });
       flush();
       return t;
     },
@@ -328,6 +395,82 @@ const Store = (() => {
     backupAge() {
       if (!data.lastBackup) return null;
       return Math.floor((Date.now() - Date.parse(data.lastBackup)) / 86400000);
+    },
+
+    /* ------------------------------------------------------- partage ---- */
+
+    /**
+     * L'état venu du serveur remplace les tableaux et la corbeille : c'est lui
+     * qui fait autorité entre les postes. Le journal, lui, est fusionné —
+     * l'historique ne recule jamais.
+     *
+     * Deux précautions. Le champ en cours de frappe garde sa valeur locale,
+     * sinon la saisie s'effacerait sous les doigts à l'instant où la réponse
+     * arrive. Et les écritures encore en attente d'envoi sont rejouées par
+     * `rejoue()` juste après : l'écran ne clignote pas en revenant en arrière
+     * une fraction de seconde.
+     */
+    applyRemote(payload) {
+      if (!payload || !payload.tables) return false;
+      const garde = champProtege();
+      const gardeValeur = garde ? (api.row(garde.table, garde.row) || {})[garde.champ] : undefined;
+
+      for (const id of Object.keys(payload.tables)) {
+        if (Array.isArray(payload.tables[id])) data.tables[id] = normalise(payload.tables[id]);
+      }
+      // Une table connue du schéma mais absente du serveur est simplement vide.
+      for (const id of Object.keys(TABLES)) if (!Array.isArray(data.tables[id])) data.tables[id] = [];
+      if (Array.isArray(payload.trash)) {
+        data.trash = payload.trash;
+        for (const t of data.trash) if (t && t.row && !t.row._id) t.row._id = uid();
+      }
+      if (garde && gardeValeur !== undefined) {
+        const r = api.row(garde.table, garde.row);
+        if (r) r[garde.champ] = gardeValeur;
+      }
+      fusionneJournal(payload.journal);
+      flush();
+      return true;
+    },
+
+    /** Rejoue localement les mutations pas encore acquittées par le serveur. */
+    rejoue(mutations) {
+      if (!Array.isArray(mutations) || !mutations.length) return;
+      for (const m of mutations) appliqueLocal(m);
+      flush();
+    },
+
+    /**
+     * Les lignes que le serveur ne connaît pas encore, sous forme de mutations
+     * prêtes à partir. C'est ce qui amorce le partage sur un poste déjà rempli,
+     * et ce qui rattrape une saisie faite hors ligne dont l'envoi s'est perdu.
+     */
+    aEnvoyer(connuesParLeServeur) {
+      const out = [];
+      for (const { table, row } of toutesLesLignes()) {
+        if (connuesParLeServeur.has(row._id)) continue;
+        const spec = TABLES[table];
+        out.push({
+          mid: uid(), op: 'ajout', table, row: row._id, valeurs: valeursDe(row),
+          prepend: !!(spec && spec.prepend), t: maintenant(), poste: api.poste(),
+          resume: libelle(table, row),
+        });
+      }
+      for (const t of data.trash) {
+        if (!t || !t.row || connuesParLeServeur.has(t.row._id)) continue;
+        const spec = TABLES[t.table];
+        // La ligne doit exister avant de pouvoir partir à la corbeille.
+        out.push({
+          mid: uid(), op: 'ajout', table: t.table, row: t.row._id, valeurs: valeursDe(t.row),
+          prepend: !!(spec && spec.prepend), t: t.at || maintenant(), poste: t.poste || api.poste(),
+          resume: libelle(t.table, t.row),
+        });
+        out.push({
+          mid: uid(), op: 'corbeille', table: t.table, row: t.row._id,
+          t: t.at || maintenant(), poste: t.poste || api.poste(), resume: libelle(t.table, t.row),
+        });
+      }
+      return out;
     },
 
     /* ------------------------------------------------------ sauvegarde -- */
@@ -350,6 +493,11 @@ const Store = (() => {
      * corbeille, eux, sont fusionnés : l'historique ne recule jamais.
      * L'appelant télécharge l'état courant avant d'appeler, pendant le geste de
      * l'opérateur (un téléchargement différé se ferait bloquer).
+     *
+     * Avec le partage actif, la synchronisation qui suit renvoie au serveur les
+     * lignes qu'il ne connaissait pas. Elle ne rétablit pas d'anciennes valeurs
+     * sur des lignes que le serveur a déjà : remonter une vieille sauvegarde ne
+     * fait pas reculer le travail des autres postes.
      */
     restore(file) {
       return new Promise((resolve, reject) => {
@@ -406,6 +554,43 @@ const Store = (() => {
       telecharge(`historique-${today()}.csv`, lines);
     },
   };
+
+  /**
+   * Applique une mutation aux tableaux sans rien consigner : elle l'a déjà été
+   * quand l'opérateur l'a faite. Sert au rejeu des écritures en attente
+   * par-dessus l'état revenu du serveur.
+   */
+  function appliqueLocal(m) {
+    if (!m || !m.op) return;
+    switch (m.op) {
+      case 'ajout': {
+        if (api.row(m.table, m.row) || indexCorbeille(m.row) >= 0) return;
+        const r = Object.assign({ _id: m.row }, m.valeurs || {});
+        if (m.prepend) api.rows(m.table).unshift(r); else api.rows(m.table).push(r);
+        return;
+      }
+      case 'modif': {
+        const r = api.row(m.table, m.row);
+        if (r) r[m.champ] = m.apres;
+        return;
+      }
+      case 'corbeille': {
+        const i = indexDe(m.table, m.row);
+        if (i < 0) return;
+        const [row] = api.rows(m.table).splice(i, 1);
+        data.trash.push({ table: m.table, row, at: m.t, poste: m.poste });
+        return;
+      }
+      case 'restauration': {
+        const i = indexCorbeille(m.row);
+        if (i < 0) return;
+        const [t] = data.trash.splice(i, 1);
+        if (m.prepend) api.rows(t.table).unshift(t.row); else api.rows(t.table).push(t.row);
+        return;
+      }
+      default:
+    }
+  }
 
   const csv = (v) => {
     const s = String(v ?? '');

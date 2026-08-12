@@ -63,8 +63,12 @@ Pas dans l'interface, gardées ici pour ne pas les perdre.
   « Valider ».
 - **Clavier** : `Entrée` / `↓` descend d'une ligne, `↑` remonte, `Tab` passe à la
   colonne suivante.
-- **Bouton numéroté** en début de ligne : ouvre la ligne entière en plein écran
-  (pratique sur tablette) et permet de la mettre à la corbeille.
+- **Retirer une ligne** : bouton numéroté en début de ligne → la fiche s'ouvre en
+  plein écran (pratique sur tablette) → **Mettre à la corbeille**, avec
+  confirmation. C'est volontairement le seul chemin : pas de croix dans le
+  tableau, qu'un doigt ganté attraperait en visant la case d'à côté.
+- **Tout est partagé** : ajout, modification, retrait valent pour tous les postes
+  de l'atelier. Voir [Partage entre les postes](#partage-entre-les-postes).
 - **Recherche** : filtre le tableau affiché, sur toutes les colonnes à la fois.
 - **CSV** : s'ouvre directement dans Excel (séparateur `;`, UTF-8 BOM).
 - **Imprimer** : sort le tableau en A4 portrait sans l'interface, pour signature
@@ -72,14 +76,16 @@ Pas dans l'interface, gardées ici pour ne pas les perdre.
 
 ## Rien ne se perd
 
-Ce que le site garantit, à l'intérieur d'un poste :
+Ce que le site garantit, sur le poste **comme sur le tableau partagé** :
 
 - **Historique** (`#/journal`). Chaque écriture est consignée : quand, quel
   écran, quelle ligne, quel champ, la valeur **avant** et la valeur **après**,
-  et le poste. Le journal est en ajout seul — aucune entrée ne se modifie ni ne
-  s'efface. Les frappes successives dans un même champ sont regroupées en une
-  entrée, sinon taper « turbine » en produirait sept. Export CSV comme les
-  tableaux.
+  et le poste. Avec le partage, l'historique est commun : on voit les écritures
+  de tous les postes, chacune sous son nom — d'où le bandeau qui demande de
+  nommer le navigateur au premier démarrage. Le journal est en ajout seul —
+  aucune entrée ne se modifie ni ne s'efface. Les frappes successives dans un
+  même champ sont regroupées en une entrée, sinon taper « turbine » en
+  produirait sept. Export CSV comme les tableaux.
 - **Corbeille** (`#/corbeille`). Une ligne retirée d'un tableau ne disparaît
   pas : elle part à la corbeille, reste dans la sauvegarde `.json` et se remet
   en place d'un bouton. Il n'existe aucune suppression définitive dans
@@ -91,70 +97,133 @@ Ce que le site garantit, à l'intérieur d'un poste :
   vider ce stockage quand la place manque. La demande part toujours ; l'état
   obtenu ne s'affiche plus (`Store.durable()` le donne en console).
 - **Rappel de sauvegarde.** Un bandeau apparaît au bout de sept jours sans
-  `Sauvegarde .json`, et tant qu'aucune n'a été faite.
+  `Sauvegarde .json`, et tant qu'aucune n'a été faite. Avec le partage actif, le
+  serveur garde une copie datée par jour : le rappel passe à trente jours.
 - **Filet à la restauration.** `Restaurer` télécharge d'abord l'état courant,
   puis remplace les tableaux par le fichier. L'historique et la corbeille, eux,
   sont **fusionnés** : revenir en arrière sur les tableaux ne fait pas reculer
-  l'historique, on voit toujours ce qui a existé entre-temps.
+  l'historique, on voit toujours ce qui a existé entre-temps. Avec le partage,
+  les lignes du fichier que le serveur ignore lui sont renvoyées ; celles qu'il
+  connaît gardent leur valeur — remonter une vieille sauvegarde sur un poste ne
+  fait pas reculer le travail des autres.
 - Une table retirée du schéma n'est pas effacée : ses lignes restent dans le
   stockage et dans la sauvegarde.
 
-## Données — ce qui n'est pas garanti
+## Partage entre les postes
 
-Tout est stocké dans le **navigateur du poste** (`localStorage`) — aucun serveur,
-aucune donnée envoyée sur Internet. Conséquences pratiques, que rien de ce qui
-précède ne corrige :
+Sur l'adresse Railway, **tous les navigateurs de l'entreprise voient le même
+tableau**. Une ligne ajoutée sur la tablette apparaît sur le PC en quelques
+secondes, et inversement. Idem pour une modification, une mise à la corbeille,
+une remise en place.
 
-- **Les données ne suivent pas d'un poste à l'autre.** La tablette et le PC ont
-  deux bases séparées qui ne se parlent jamais. Idem entre l'adresse Railway et
-  celle de GitHub Pages : deux origines, deux stockages.
-- **Vider les données du navigateur efface la saisie.** La demande de stockage
-  protégé n'empêche pas un effacement volontaire par l'opérateur.
-- **Un poste perdu, c'est les données du poste.** Seule la `Sauvegarde .json`
-  sortie du navigateur protège de ça.
+Comment ça marche, en trois phrases. Le navigateur écrit **d'abord chez lui** :
+l'écran répond tout de suite, comme avant. L'écriture part **ensuite** au
+serveur, qui tient le tableau de référence dans un fichier JSON sur le volume
+Railway. Les autres postes relisent ce tableau toutes les cinq secondes.
 
-D'où la règle : **`Sauvegarde .json` une fois par semaine** (bouton en bas de la
-barre latérale) sur le réseau ou une clé USB. Le fichier contient les tableaux,
-l'historique et la corbeille. `Restaurer` le relit.
+Le témoin en haut à droite dit où l'on en est :
 
-Un vrai suivi partagé entre la tablette et le PC demande une base commune, donc
-un serveur : c'est un choix d'archi structurant, hors du périmètre actuel.
+| Témoin | Ce que ça veut dire |
+|---|---|
+| **Partagé** (vert) | à jour, tout le monde voit la même chose |
+| **Hors ligne** (orange, avec un compteur) | serveur injoignable ; la saisie continue et repartira toute seule |
+| **Code requis** (rouge) | ce navigateur n'est pas encore relié — saisir le code de l'atelier |
+| **Ce poste** (gris) | aucun serveur à cette adresse (GitHub Pages, fichiers ouverts en local) |
+
+Ce qui est prévu et vérifié :
+
+- **Réseau coupé.** Rien ne bloque. Les écritures s'empilent dans une file
+  conservée par le navigateur — elle survit à la fermeture de l'onglet — et
+  repartent au retour du réseau, même si la tablette a été éteinte entre-temps.
+- **Serveur en panne au démarrage.** Un navigateur déjà relié une fois ne bascule
+  pas en mode « poste seul » : il attend et réessaie. Sans quoi une panne d'une
+  minute ferait travailler l'atelier une journée sur des données qui ne
+  remonteraient jamais.
+- **Deux personnes sur la même ligne.** La dernière écriture gagne, champ par
+  champ — et l'historique garde les deux, avec le nom du poste.
+- **Frappe en cours.** Le champ sous le curseur n'est jamais écrasé par ce qui
+  revient du serveur, et le curseur ne bouge pas.
+- **Poste déjà rempli.** Les lignes saisies avant le partage sont poussées au
+  serveur au premier échange : rien à ressaisir.
+
+### Code d'atelier
+
+L'adresse Railway est publique. Le serveur exige donc un **code partagé par toute
+l'entreprise**, gardé dans la variable d'environnement `CODE_ATELIER` du service.
+Sans lui, l'API refuse de lire comme d'écrire. Il est demandé **une seule fois
+par navigateur** puis mémorisé — pas de comptes, pas de mots de passe
+individuels.
+
+### Ce qui n'est toujours pas garanti
+
+- **Vider les données du navigateur efface la file d'envoi non partie.** Ce qui
+  est déjà remonté au serveur, lui, ne bouge pas.
+- **GitHub Pages ne partage rien.** C'est un secours statique : l'appli y
+  fonctionne, mais chaque poste avec ses données, comme avant.
+- **Le serveur reste un point unique.** Il en garde une copie datée par jour sur
+  le volume, mais la `Sauvegarde .json` reste le seul filet qui ne dépend
+  d'aucun serveur — d'où le rappel au bout de 30 jours (7 sans partage).
 
 ## Mise en ligne
 
 Le site est publié aux deux adresses, à partir de la même branche `main` :
 
-| Hébergeur | URL |
-|---|---|
-| Railway (principal) | https://maintenance-production-3cee.up.railway.app |
-| GitHub Pages (secours) | https://dockbearolda.github.io/Projet-Maintenance-Machine/ |
+| Hébergeur | URL | Partage |
+|---|---|---|
+| Railway (principal) | https://maintenance-production-3cee.up.railway.app | oui |
+| GitHub Pages (secours) | https://dockbearolda.github.io/Projet-Maintenance-Machine/ | non, poste par poste |
 
 Un `git push` sur `main` redéploie automatiquement les deux. Côté Railway, le
-service `maintenance` du projet `maintenance-atelier` sert les fichiers derrière
-Caddy (`Dockerfile` + `Caddyfile`) : aucune étape de build, on copie `index.html`
-et `assets/` dans l'image. Tout est servi en `no-cache` : une correction arrive
+service `maintenance` du projet `maintenance-atelier` lance `server.js` sous Node
+(`Dockerfile`) : aucune étape de build, on copie `index.html`, `assets/` et
+`server.js` dans l'image. Tout est servi en `no-cache` : une correction arrive
 sur le poste au prochain chargement, sans vidage de cache.
+
+Deux réglages côté Railway, indispensables et à ne pas défaire :
+
+| Réglage | Valeur | Pourquoi |
+|---|---|---|
+| Volume | monté sur `/data` | c'est là que vivent les données ; sans lui, un redéploiement repart de zéro |
+| Variable `CODE_ATELIER` | le code partagé | sans elle le serveur démarre **ouvert** et le log l'annonce (`code DÉSACTIVÉ`) |
 
 ## Développement
 
-Aucune dépendance, aucune étape de build. Cinq fichiers :
+Aucune dépendance, aucune étape de build — ni au navigateur, ni au serveur
+(bibliothèque standard de Node uniquement). Six fichiers :
 
 ```
 index.html
 assets/css/app.css
 assets/js/schema.js   les tableaux, les écrans de suivi, la navigation
-assets/js/store.js    persistance, journal, corbeille, sauvegarde, export CSV
+assets/js/store.js    persistance locale, journal, corbeille, sauvegarde, CSV
+assets/js/sync.js     partage entre postes : file d'envoi, relecture, code
 assets/js/app.js      routage, rendu des tableaux et du suivi, fiche de ligne
+server.js             sert le site et tient le tableau de référence
 ```
 
-Infrastructure : `Dockerfile`, `Caddyfile`, `railway.json`. Ces trois fichiers ne
-concernent que l'hébergement — ils n'ajoutent aucune dépendance au navigateur.
+Vérifier le serveur — il se lance pour de vrai, sur un dossier temporaire :
+
+```bash
+node test/serveur.mjs
+```
+
+Infrastructure : `Dockerfile`, `railway.json`. Ils ne concernent que
+l'hébergement — ils n'ajoutent aucune dépendance au navigateur.
 
 Servir en local :
 
 ```bash
-python3 -m http.server 4173
+node server.js
 ```
+
+Sans `CODE_ATELIER`, le serveur démarre ouvert (pratique en dev, jamais en prod)
+et écrit dans `./data` faute de volume `/data`. Pour tester le partage à deux,
+ouvrir la même adresse dans deux navigateurs différents — deux onglets du même
+navigateur partagent le `localStorage` et ne prouveraient rien.
+
+Le site reste utilisable **servi en fichiers bruts**, sans ce serveur : la sonde
+d'accueil échoue, `sync.js` se met en veille et l'appli redevient celle d'avant,
+chaque poste avec ses données. C'est ce qui fait tenir le secours GitHub Pages.
 
 **Ajouter une colonne, un tableau ou une machine** : tout se passe dans
 `assets/js/schema.js`. Le rendu, la fiche de ligne, l'export CSV et l'impression
@@ -177,7 +246,18 @@ lisent ce que le store a gardé, ils ne stockent rien eux-mêmes.
 **Identité des lignes** : chaque ligne porte un `_id` posé à la création, et
 récupéré à la volée pour les lignes d'avant l'historique. C'est lui qui relie une
 ligne à ses entrées de journal — l'indice ne suffirait pas, les tableaux insèrent
-en tête. Il ne s'affiche jamais et ne sort pas au CSV.
+en tête — **et** qui la désigne d'un poste à l'autre : deux navigateurs n'ont
+aucune raison de compter pareil. Rien dans l'appli n'adresse une ligne par son
+rang. Il ne s'affiche jamais et ne sort pas au CSV.
+
+**Le partage se dit en mutations**, pas en états : `ajout`, `modif`, `corbeille`,
+`restauration`, chacune avec un `mid` qui la suit du navigateur au serveur puis
+aux autres postes. C'est ce `mid` qui rend un renvoi inoffensif — le serveur
+reconnaît une mutation déjà appliquée — et qui permet de prolonger l'entrée de
+journal d'une frappe en cours au lieu d'en ouvrir une par caractère. Le serveur,
+lui, ne connaît pas le schéma : il range des lignes dans des tables nommées,
+sans savoir ce qu'est une colonne. Ajouter une machine reste une affaire de
+`schema.js`, sans toucher au serveur.
 
 ## Cibles
 

@@ -55,6 +55,35 @@ Pas dans l'interface, gardées ici pour ne pas les perdre.
 | **Roland** | Captops (x2) | 6 mois, conseil du constructeur |
 | **Roland** | Essuyeur, feutre blanc, éponge de purge | pas de calendrier — la machine alerte, cloche sur le panneau de commande |
 
+### Lignes de départ
+
+Les entretiens faits **avant que l'appli existe** sont dans les tableaux dès la
+première ouverture. L'atelier les a dictés, ils ne se régénèrent pas : ils vivent
+donc dans le schéma, pas dans le stockage d'un seul navigateur.
+
+| Machine | Le | Pièces |
+|---|---|---|
+| **DTF** | 20/07/2026 | Captops (x2), Dampers (4 couleurs) |
+| **Roland UV** | 10/08/2026 | Captops (x2), Essuyeur (wiper), Filtre brouillard UV, Éponge de purge |
+
+L'heure affichée (09:00) est indicative — le jour a été donné, pas la minute. La
+case se corrige comme n'importe quelle autre.
+
+Ça s'ajoute dans `assets/js/schema.js`, clé `seed` du tableau concerné, et
+**chaque ligne porte un `_id` fixe** — jamais `uid()`. C'est cet identifiant qui
+tient les trois propriétés :
+
+- `Store.load()` **complète** les lignes manquantes, même sur un poste ouvert
+  depuis longtemps. Sans ça une ligne ajoutée au schéma n'apparaîtrait que sur un
+  navigateur neuf, et comme c'est le poste qui alimente le serveur, personne ne la
+  verrait jamais.
+- Le serveur ignore un `ajout` dont il connaît déjà l'identifiant : **pas de
+  doublon** quand dix postes complètent en même temps.
+- Une ligne mise à la corbeille **ne revient pas** au chargement suivant.
+
+Un `_id` déjà publié ne se réécrit jamais : ce serait une ligne de plus, pas une
+correction.
+
 ## Utilisation
 
 - **`+ Ligne`** ajoute une ligne en tête, avec la date **et l'heure** du moment

@@ -45,6 +45,20 @@ const COLONNES_PIECES = [
   { key: 'obs',  label: 'Remarques',     type: 'long', w: 210 },
 ];
 
+/* Lignes de départ (`seed`) — les entretiens déjà faits en atelier avant que
+   l'appli existe. L'atelier les a dictés, ils ne se régénèrent pas : ils
+   appartiennent au schéma comme le reste, pas au stockage d'un seul navigateur.
+
+   Chaque ligne porte un `_id` FIXE, jamais un uid() tiré au hasard. C'est lui
+   qui rend la chose sûre : `Store.load()` complète les lignes manquantes même
+   sur un poste déjà ouvert, le serveur ignore un `ajout` dont il connaît déjà
+   l'identifiant — donc aucun doublon d'un poste à l'autre — et une ligne mise à
+   la corbeille n'y revient pas au chargement suivant. Un `_id` déjà publié ne se
+   réécrit jamais : ce serait une ligne de plus, pas une correction.
+
+   L'heure est indicative : l'atelier a donné le jour, pas la minute. La case se
+   corrige d'un doigt à l'écran, comme n'importe quelle autre. */
+
 const TABLES = {
 
   /* --------------------------------------------------- TROTEC — LASER --- */
@@ -86,7 +100,11 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    seed: () => [],
+    // Tous les changements du 20 juillet 2026, dictés par l'atelier.
+    seed: () => [
+      { _id: 'g-dtf-2026-07-20-captops', date: '2026-07-20T09:00', piece: 'Captops (x2)', qte: '2', tech: 'Charlie' },
+      { _id: 'g-dtf-2026-07-20-dampers', date: '2026-07-20T09:00', piece: 'Dampers (4 couleurs)', qte: '4', tech: 'Charlie' },
+    ],
   },
 
   /* ----------------------------------------------------- ROLAND UV ----- */
@@ -99,7 +117,13 @@ const TABLES = {
     prepend: true,
     addRow: () => ({ date: nowLocal() }),
     columns: COLONNES_PIECES,
-    seed: () => [],
+    // Les changements du 10 août 2026, dictés par l'atelier.
+    seed: () => [
+      { _id: 'g-roland-2026-08-10-captops',  date: '2026-08-10T09:00', piece: 'Captops (x2)', qte: '2', tech: 'Charlie' },
+      { _id: 'g-roland-2026-08-10-essuyeur', date: '2026-08-10T09:00', piece: 'Essuyeur (wiper)', qte: '1', tech: 'Charlie' },
+      { _id: 'g-roland-2026-08-10-filtre',   date: '2026-08-10T09:00', piece: 'Filtre brouillard UV', qte: '1', tech: 'Charlie' },
+      { _id: 'g-roland-2026-08-10-eponge',   date: '2026-08-10T09:00', piece: 'Éponge de purge', qte: '1', tech: 'Charlie' },
+    ],
   },
 };
 

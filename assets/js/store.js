@@ -44,7 +44,7 @@ const Store = (() => {
       version: VERSION, updated: null, tables: {},
       journal: [], trash: [], lastBackup: null,
     };
-    for (const id of Object.keys(TABLES)) d.tables[id] = TABLES[id].seed();
+    for (const id of Object.keys(TABLES)) d.tables[id] = normalise(TABLES[id].seed());
     return d;
   }
 
@@ -92,8 +92,43 @@ const Store = (() => {
     }
     keepOrphans(parsed);
     for (const t of data.trash) if (t && t.row && !t.row._id) t.row._id = uid();
+    completeGraines();
     ouvreJournal();
     return data;
+  }
+
+  /**
+   * Les lignes de départ du schéma qui manquent à ce poste. Un tableau déjà
+   * rempli ne repart pas de zéro : on complète ligne à ligne, et seulement
+   * celles qu'on ne trouve ni dans un tableau ni à la corbeille.
+   *
+   * Sans ça, une ligne ajoutée au schéma n'arriverait que sur un navigateur
+   * neuf : un poste ouvert avant a déjà son stockage, il ne seede plus rien, et
+   * comme c'est le poste qui alimente le serveur (`aEnvoyer`), personne ne la
+   * verrait jamais. C'est exactement ce qui est arrivé aux changements de
+   * pièces du 20 juillet et du 10 août.
+   *
+   * Deux garde-fous, tous deux tenus par l'identifiant fixe des graines : la
+   * corbeille — une ligne retirée exprès ne revient pas au chargement suivant —
+   * et le serveur, qui ignore un `ajout` dont il connaît déjà l'identifiant,
+   * donc pas de doublon quand plusieurs postes complètent en même temps.
+   */
+  function completeGraines() {
+    const connus = new Set();
+    for (const rows of Object.values(data.tables)) {
+      for (const r of rows) if (r && r._id) connus.add(r._id);
+    }
+    for (const t of data.trash) if (t && t.row && t.row._id) connus.add(t.row._id);
+
+    for (const id of Object.keys(TABLES)) {
+      const manquantes = TABLES[id].seed().filter((r) => r && r._id && !connus.has(r._id));
+      if (!manquantes.length) continue;
+      // Les graines sont des entretiens anciens : elles se rangent du côté du
+      // passé, c'est-à-dire à l'opposé de celui où le tableau insère le neuf.
+      data.tables[id] = TABLES[id].prepend
+        ? data.tables[id].concat(manquantes)
+        : manquantes.concat(data.tables[id]);
+    }
   }
 
   /**
@@ -294,11 +329,19 @@ const Store = (() => {
   const indexDe = (id, rowId) => api.rows(id).findIndex((r) => r && r._id === rowId);
   const indexCorbeille = (rowId) => data.trash.findIndex((t) => t && t.row && t.row._id === rowId);
 
-  /** Toutes les lignes connues du poste, tableaux et corbeille confondus. */
+  /**
+   * Toutes les lignes connues du poste, tableaux et corbeille confondus.
+   *
+   * Un tableau qui insère en tête se rejoue à l'envers : le serveur empile lui
+   * aussi par la tête, l'envoyer dans l'ordre de l'écran lui ferait rendre le
+   * tableau inversé — à tous les postes, dates justes et ordre faux.
+   */
   function toutesLesLignes() {
     const out = [];
     for (const id of Object.keys(data.tables)) {
-      for (const r of data.tables[id]) if (r && r._id) out.push({ table: id, row: r });
+      const rows = data.tables[id];
+      const ordre = (TABLES[id] || {}).prepend ? rows.slice().reverse() : rows;
+      for (const r of ordre) if (r && r._id) out.push({ table: id, row: r });
     }
     return out;
   }
@@ -516,6 +559,9 @@ const Store = (() => {
             keepOrphans(parsed);
             const nj = fusionneJournal(parsed.journal);
             const nc = fusionneCorbeille(parsed.trash);
+            // Après la corbeille, jamais avant : une graine retirée exprès est
+            // dans le fichier remonté, elle ne doit pas revenir par le schéma.
+            completeGraines();
             note({
               op: 'import',
               resume: `${compte()} ligne(s) en place · ${nj} entrée(s) d'historique et ${nc} ligne(s) de corbeille reprises`,
